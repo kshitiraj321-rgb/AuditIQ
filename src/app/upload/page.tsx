@@ -20,6 +20,7 @@ import {
   generateRecommendations,
   type RecommendationInput,
 } from "@/lib/recommendationEngine";
+import { readPdfText } from "@/lib/pdfTextReader";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -58,7 +59,7 @@ export default function UploadPage() {
 
   const allDocumentsUploaded = Boolean(poFile && grnFile && invoiceFile);
 
-  function handleAnalyzeClick() {
+  async function handleAnalyzeClick() {
     if (!allDocumentsUploaded) {
       setValidationMessage(
         "Please upload Purchase Order, Goods Receipt Note, and Vendor Invoice before analyzing."
@@ -70,9 +71,25 @@ export default function UploadPage() {
     const goodsReceiptNoteClassification = classifyDocument(grnFile!.name);
     const vendorInvoiceClassification = classifyDocument(invoiceFile!.name);
 
-    const purchaseOrderData = extractDocumentData(purchaseOrderClassification);
-    const goodsReceiptNoteData = extractDocumentData(goodsReceiptNoteClassification);
-    const vendorInvoiceData = extractDocumentData(vendorInvoiceClassification);
+    const [purchaseOrderText, goodsReceiptNoteText, vendorInvoiceText] =
+      await Promise.all([
+        readPdfText(poFile!),
+        readPdfText(grnFile!),
+        readPdfText(invoiceFile!),
+      ]);
+
+    const purchaseOrderData = extractDocumentData(
+      purchaseOrderClassification,
+      purchaseOrderText
+    );
+    const goodsReceiptNoteData = extractDocumentData(
+      goodsReceiptNoteClassification,
+      goodsReceiptNoteText
+    );
+    const vendorInvoiceData = extractDocumentData(
+      vendorInvoiceClassification,
+      vendorInvoiceText
+    );
     const matchResult = matchDocuments({
       purchaseOrder: purchaseOrderData,
       goodsReceiptNote: goodsReceiptNoteData,
@@ -215,7 +232,9 @@ export default function UploadPage() {
       <div className="mt-4">
         <button
           type="button"
-          onClick={handleAnalyzeClick}
+          onClick={() => {
+            void handleAnalyzeClick();
+          }}
           className="px-4 py-2 border rounded"
         >
           Analyze Documents
