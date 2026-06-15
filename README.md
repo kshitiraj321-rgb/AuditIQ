@@ -1,36 +1,183 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AuditIQ
 
-## Getting Started
+AuditIQ is a Next.js application for three-way document analysis across Purchase Orders, Goods Receipt Notes, and Vendor Invoices.
 
-First, run the development server:
+## Problem Statement
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Finance and audit teams often review procurement documents manually to catch mismatches, exception patterns, and exposure risk. That process is slow, repetitive, and hard to standardize across cases.
+
+## Solution Overview
+
+AuditIQ provides a lightweight web-based workflow that accepts three documents, runs them through a deterministic analysis pipeline, and presents the resulting exceptions, exposure, risk, recommendations, and explainability in a structured results view.
+
+Blueprint V1 is complete and the current repository reflects that MVP state.
+
+## Application Screenshots
+
+![AuditIQ Dashboard](docs/screenshots/dashboard.png)
+
+![AuditIQ Upload Screen 1](docs/screenshots/upload.png)
+
+![AuditIQ Upload Screen 2](docs/screenshots/upload-2.png)
+
+![AuditIQ Results Screen 1](docs/screenshots/results.png)
+
+![AuditIQ Results Screen 2](docs/screenshots/results-2.png)
+
+## Features
+
+- Upload PO, GRN, and Invoice documents
+- Classify uploaded filenames into document types
+- Extract structured document data
+- Perform three-way matching across quantity, unit price, and amount
+- Detect procurement exceptions
+- Calculate estimated financial exposure
+- Derive a risk score and risk level
+- Generate recommendations
+- Generate explainability output
+- Persist a single analysis snapshot in session storage
+- View KPI summaries on the dashboard and detailed results on the results page
+
+## System Workflow
+
+```text
+Upload Documents
+↓
+Classification
+↓
+Extraction
+↓
+Three-Way Matching
+↓
+Exception Detection
+↓
+Financial Exposure
+↓
+Risk Assessment
+↓
+Recommendation Engine
+↓
+Explainability
+↓
+Results
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Architecture
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+AuditIQ uses the Next.js App Router with page-level orchestration and small synchronous analysis engines in `src/lib`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `src/app/upload/page.tsx` orchestrates the pipeline and stores the latest analysis snapshot
+- `src/app/results/page.tsx` reads the snapshot and renders the detailed result experience
+- `src/app/page.tsx` renders dashboard KPIs from the latest stored analysis when present
+- `src/lib/*` contains the rule-based engines for classification, extraction, matching, exceptions, exposure, risk, recommendations, and explainability
 
-## Learn More
+The current architecture is intentionally simple and browser-local. It is designed to demonstrate the V1 workflow without introducing backend infrastructure.
 
-To learn more about Next.js, take a look at the following resources:
+## Technology Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Next.js 16
+- React 19
+- TypeScript 5
+- Tailwind CSS v4
+- ESLint 9
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```text
+.
+├── AuditIQ_Source_Inventory.md
+├── README.md
+├── docs
+│   ├── architecture.md
+│   └── project-overview.md
+├── public
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── next.svg
+│   ├── vercel.svg
+│   └── window.svg
+├── src
+│   ├── app
+│   │   ├── favicon.ico
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   ├── results
+│   │   │   └── page.tsx
+│   │   └── upload
+│   │       └── page.tsx
+│   └── lib
+│       ├── classifier.ts
+│       ├── exceptionEngine.ts
+│       ├── explainability.ts
+│       ├── extractor.ts
+│       ├── financialExposure.ts
+│       ├── matcher.ts
+│       ├── recommendationEngine.ts
+│       └── riskEngine.ts
+├── package.json
+├── tsconfig.json
+├── eslint.config.mjs
+├── next.config.ts
+└── postcss.config.mjs
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Notes:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/components` is not present in the current codebase
+- `src/types` is not present in the current codebase
+
+## Local Setup Instructions
+
+```bash
+npm install
+npm run dev
+```
+
+Then open:
+
+```text
+http://localhost:3000
+```
+
+Helpful commands:
+
+```bash
+npm run build
+npm run lint
+```
+
+## Current Limitations
+
+- Mock Classification: filenames are used instead of document OCR or semantic parsing
+- Mock Extraction: extracted values are deterministic fixtures, not parsed document content
+- SessionStorage Persistence: the analysis snapshot is browser-local and temporary
+- Duplicate Invoice Framework (Partial): the exception exists, but the current upload flow does not provide persistent invoice history
+
+## Roadmap
+
+### Completed
+
+- App Router structure
+- Upload page analysis pipeline
+- Results page rendering
+- Dashboard KPI summary
+- Exception detection
+- Financial exposure calculation
+- Risk scoring
+- Recommendation generation
+- Explainability generation
+
+### In Progress
+
+- None in the current repository state; Blueprint V1 is the active baseline
+
+### Future Enhancements
+
+- Replace mock classification with real document understanding
+- Replace mock extraction with OCR or structured document parsing
+- Add durable persistence beyond session storage
+- Introduce persistent duplicate-invoice history
+- Add authentication and role-based access
+- Add automated tests and fixture coverage
+- Add production telemetry and error reporting
