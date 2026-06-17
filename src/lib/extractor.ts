@@ -102,6 +102,13 @@ function extractNumberAfterLabel(
   return parseNumber(match[1]);
 }
 
+function isValidIdentifier(value: string | null, minLength: number = 2, maxLength: number = 50): boolean {
+  if (!value) return false;
+  if (value.length < minLength || value.length > maxLength) return false;
+  // Allow alphanumeric, hyphens, dots, slashes, spaces
+  return /^[a-zA-Z0-9\-.\/ ]+$/.test(value);
+}
+
 function extractLineItemValues(documentText: string) {
   // Header-aware table parsing (preferred)
   const lines = documentText.split(/\r?\n/);
@@ -188,22 +195,79 @@ function extractLineItemValues(documentText: string) {
 }
 
 function extractDocumentIdentifiers(documentText: string) {
-  const documentNumber =
-    extractTextBetweenLabels(documentText, ["Document Number"], ["Vendor Name"]) ??
-    null;
-  const vendorName =
-    extractTextBetweenLabels(documentText, ["Vendor Name"], ["Vendor Address"]) ??
-    null;
-  const poNumber =
-    extractTextBetweenLabels(documentText, ["PO Number"], ["GRN Number"]) ?? null;
-  const grnNumber =
-    extractTextBetweenLabels(documentText, ["GRN Number"], ["Invoice Number"]) ??
-    null;
-  const invoiceNumber =
-    extractTextBetweenLabels(documentText, ["Invoice Number"], ["Reference Note"]) ??
-    null;
-  const date =
-    extractTextBetweenLabels(documentText, ["Document Date"], ["Currency"]) ?? null;
+  // Expanded label arrays to capture common variations
+  const documentNumber = isValidIdentifier(
+    extractTextBetweenLabels(documentText, 
+      ["Document Number", "Doc Number", "Document No.", "Doc No.", "Ref No.", "Reference"], 
+      ["Vendor Name", "Vendor", "Supplier Name", "Bill From"]
+    ),
+    3,
+    30
+  ) ? extractTextBetweenLabels(documentText, 
+    ["Document Number", "Doc Number", "Document No.", "Doc No.", "Ref No.", "Reference"], 
+    ["Vendor Name", "Vendor", "Supplier Name", "Bill From"]
+  ) : null;
+
+  const vendorName = isValidIdentifier(
+    extractTextBetweenLabels(documentText, 
+      ["Vendor Name", "Vendor", "Supplier Name", "Bill From", "From:"], 
+      ["Vendor Address", "Vendor Address:", "Address", "Location"]
+    ),
+    2,
+    100
+  ) ? extractTextBetweenLabels(documentText, 
+    ["Vendor Name", "Vendor", "Supplier Name", "Bill From", "From:"], 
+    ["Vendor Address", "Vendor Address:", "Address", "Location"]
+  ) : null;
+
+  const poNumber = isValidIdentifier(
+    extractTextBetweenLabels(documentText, 
+      ["PO Number", "PO No.", "PO No", "Purchase Order No.", "PO Ref", "Purchase Order"], 
+      ["GRN Number", "GRN No.", "Goods Receipt"]
+    ),
+    3,
+    25
+  ) ? extractTextBetweenLabels(documentText, 
+    ["PO Number", "PO No.", "PO No", "Purchase Order No.", "PO Ref", "Purchase Order"], 
+    ["GRN Number", "GRN No.", "Goods Receipt"]
+  ) : null;
+
+  const grnNumber = isValidIdentifier(
+    extractTextBetweenLabels(documentText, 
+      ["GRN Number", "GRN No.", "Goods Receipt No.", "Goods Received Note No.", "Receipt No."], 
+      ["Invoice Number", "Invoice No.", "Inv. No."]
+    ),
+    3,
+    25
+  ) ? extractTextBetweenLabels(documentText, 
+    ["GRN Number", "GRN No.", "Goods Receipt No.", "Goods Received Note No.", "Receipt No."], 
+    ["Invoice Number", "Invoice No.", "Inv. No."]
+  ) : null;
+
+  const invoiceNumber = isValidIdentifier(
+    extractTextBetweenLabels(documentText, 
+      ["Invoice Number", "Inv. No.", "Inv No", "Invoice No.", "Bill Number", "Invoice ID"], 
+      ["Reference Note", "Terms", "Due Date", "Payment Terms", "Notes"]
+    ),
+    3,
+    25
+  ) ? extractTextBetweenLabels(documentText, 
+    ["Invoice Number", "Inv. No.", "Inv No", "Invoice No.", "Bill Number", "Invoice ID"], 
+    ["Reference Note", "Terms", "Due Date", "Payment Terms", "Notes"]
+  ) : null;
+
+  const date = isValidIdentifier(
+    extractTextBetweenLabels(documentText, 
+      ["Document Date", "Date:", "Invoice Date", "Date of Issue", "Issue Date", "Created"], 
+      ["Currency", "Qty", "Quantity", "Items", "Line Items"]
+    ),
+    8,
+    30
+  ) ? extractTextBetweenLabels(documentText, 
+    ["Document Date", "Date:", "Invoice Date", "Date of Issue", "Issue Date", "Created"], 
+    ["Currency", "Qty", "Quantity", "Items", "Line Items"]
+  ) : null;
+
   const totalAmount =
     extractNumberAfterLabel(documentText, ["Grand Total"]) ?? null;
 
