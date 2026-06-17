@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import type { FinancialExposureResult } from "@/lib/financialExposure";
 import type { RiskAssessmentResult } from "@/lib/riskEngine";
 import type { ExplainabilityResult } from "@/lib/explainability";
+import type { ContentVerificationResult } from "@/lib/classifier";
 
 type AnalysisResult = {
   files: {
@@ -16,10 +17,13 @@ type AnalysisResult = {
   classifications: {
     purchaseOrder: string;
     purchaseOrderConfidence: number;
+    purchaseOrderVerification: ContentVerificationResult;
     goodsReceiptNote: string;
     goodsReceiptNoteConfidence: number;
+    goodsReceiptNoteVerification: ContentVerificationResult;
     vendorInvoice: string;
     vendorInvoiceConfidence: number;
+    vendorInvoiceVerification: ContentVerificationResult;
   };
   extractedData: {
     purchaseOrder: {
@@ -89,10 +93,28 @@ const fallbackAnalysis: AnalysisResult = {
   classifications: {
     purchaseOrder: "Purchase Order",
     purchaseOrderConfidence: 95,
+    purchaseOrderVerification: {
+      verified: true,
+      contentType: "Purchase Order",
+      adjustedConfidence: 95,
+      conflict: false,
+    },
     goodsReceiptNote: "Goods Receipt Note",
     goodsReceiptNoteConfidence: 95,
+    goodsReceiptNoteVerification: {
+      verified: true,
+      contentType: "Goods Receipt Note",
+      adjustedConfidence: 95,
+      conflict: false,
+    },
     vendorInvoice: "Vendor Invoice",
     vendorInvoiceConfidence: 95,
+    vendorInvoiceVerification: {
+      verified: true,
+      contentType: "Vendor Invoice",
+      adjustedConfidence: 95,
+      conflict: false,
+    },
   },
   extractedData: {
     purchaseOrder: {
@@ -237,9 +259,18 @@ export default function ResultsPage() {
         <p>PO: {analysis.files.purchaseOrder}</p>
         <p>GRN: {analysis.files.goodsReceiptNote}</p>
         <p>Invoice: {analysis.files.vendorInvoice}</p>
-        <p>PO Classification: {analysis.classifications.purchaseOrder}</p>
-        <p>GRN Classification: {analysis.classifications.goodsReceiptNote}</p>
-        <p>Invoice Classification: {analysis.classifications.vendorInvoice}</p>
+        <p>PO Classification: {analysis.classifications.purchaseOrder} (Confidence: {analysis.classifications.purchaseOrderVerification.adjustedConfidence}%)</p>
+        {analysis.classifications.purchaseOrderVerification.conflict && (
+          <p>⚠ PO Classification Conflict: filename suggests {analysis.classifications.purchaseOrder}, content suggests {analysis.classifications.purchaseOrderVerification.contentType}</p>
+        )}
+        <p>GRN Classification: {analysis.classifications.goodsReceiptNote} (Confidence: {analysis.classifications.goodsReceiptNoteVerification.adjustedConfidence}%)</p>
+        {analysis.classifications.goodsReceiptNoteVerification.conflict && (
+          <p>⚠ GRN Classification Conflict: filename suggests {analysis.classifications.goodsReceiptNote}, content suggests {analysis.classifications.goodsReceiptNoteVerification.contentType}</p>
+        )}
+        <p>Invoice Classification: {analysis.classifications.vendorInvoice} (Confidence: {analysis.classifications.vendorInvoiceVerification.adjustedConfidence}%)</p>
+        {analysis.classifications.vendorInvoiceVerification.conflict && (
+          <p>⚠ Invoice Classification Conflict: filename suggests {analysis.classifications.vendorInvoice}, content suggests {analysis.classifications.vendorInvoiceVerification.contentType}</p>
+        )}
         <p>Quantity Match: {analysis.matchResult.quantityMatch.matched ? "Yes" : "No"}</p>
         <p>Price Match: {analysis.matchResult.priceMatch.matched ? "Yes" : "No"}</p>
         <p>Amount Match: {analysis.matchResult.amountMatch.matched ? "Yes" : "No"}</p>

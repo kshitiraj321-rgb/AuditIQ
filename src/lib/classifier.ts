@@ -84,3 +84,111 @@ export function classifyDocument(
 
   return { type: matchedEntry.type, confidence };
 }
+
+// ---------------------------------------------------------------------------
+// Priority 5D — Content-Based Classification Verification
+// ---------------------------------------------------------------------------
+
+export type ContentVerificationResult = {
+  /** true when content signals agree with the filename-derived type */
+  verified: boolean;
+  /** document type suggested by content, or null when content is ambiguous */
+  contentType: string | null;
+  /** original confidence, reduced by max(original - 40, 20) on conflict */
+  adjustedConfidence: number;
+  /** true when filename type and content type disagree */
+  conflict: boolean;
+};
+
+const contentSignals: Record<string, string[]> = {
+  "Purchase Order": [
+    "purchase order",
+    "po number",
+    "p.o. number",
+    "buyer",
+    "order date",
+    "delivery address",
+  ],
+  "Goods Receipt Note": [
+    "goods receipt",
+    "grn number",
+    "received by",
+    "receipt date",
+    "delivery note",
+    "goods received",
+  ],
+  "Vendor Invoice": [
+    "invoice number",
+    "tax invoice",
+    "invoice date",
+    "bill to",
+    "amount due",
+    "vendor invoice",
+  ],
+};
+
+const MINIMUM_SIGNAL_COUNT = 2;
+
+function detectContentType(rawText: string): string | null {
+  const lowerText = rawText.toLowerCase();
+
+  const scores: { type: string; count: number }[] = Object.entries(
+    contentSignals
+  ).map(([type, signals]) => ({
+    type,
+    count: signals.filter((signal) => lowerText.includes(signal)).length,
+  }));
+
+  // Only consider types that meet the minimum signal threshold
+  const qualified = scores.filter((s) => s.count >= MINIMUM_SIGNAL_COUNT);
+
+  if (qualified.length === 0) {
+    // No type has enough signals — content is ambiguous
+    return null;
+  }
+
+  if (qualified.length > 1) {
+    // Multiple types meet the threshold — treat as ambiguous
+    return null;
+  }
+
+  return qualified[0].type;
+}
+
+export function verifyClassificationByContent(
+  filenameType: string,
+  rawText: string,
+  originalConfidence: number
+): ContentVerificationResult {
+  const contentType = detectContentType(rawText);
+
+  if (contentType === null) {
+    // Ambiguous or blank content — no conflict, no penalty
+    return {
+      verified: false,
+      contentType: null,
+      adjustedConfidence: originalConfidence,
+      conflict: false,
+    };
+  }
+
+  if (contentType === filenameType) {
+    // Content agrees with filename classification
+    return {
+      verified: true,
+      contentType,
+      adjustedConfidence: originalConfidence,
+      conflict: false,
+    };
+  }
+
+  // Content disagrees — apply confidence penalty
+  const adjustedConfidence = Math.max(originalConfidence - 40, 20);
+
+  return {
+    verified: false,
+    contentType,
+    adjustedConfidence,
+    conflict: true,
+  };
+}

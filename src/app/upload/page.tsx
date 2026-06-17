@@ -1,6 +1,10 @@
 "use client";
 
-import { classifyDocument } from "@/lib/classifier";
+import {
+  classifyDocument,
+  verifyClassificationByContent,
+  type ContentVerificationResult,
+} from "@/lib/classifier";
 import { extractDocumentData } from "@/lib/extractor";
 import {
   calculateFinancialExposure,
@@ -33,10 +37,13 @@ type AnalysisResult = {
   classifications: {
     purchaseOrder: string;
     purchaseOrderConfidence: number;
+    purchaseOrderVerification: ContentVerificationResult;
     goodsReceiptNote: string;
     goodsReceiptNoteConfidence: number;
+    goodsReceiptNoteVerification: ContentVerificationResult;
     vendorInvoice: string;
     vendorInvoiceConfidence: number;
+    vendorInvoiceVerification: ContentVerificationResult;
   };
   extractedData: {
     purchaseOrder: ReturnType<typeof extractDocumentData>;
@@ -80,6 +87,23 @@ export default function UploadPage() {
         readPdfText(grnFile!),
         readPdfText(invoiceFile!),
       ]);
+
+    // Priority 5D — Content-Based Classification Verification
+    const purchaseOrderVerification = verifyClassificationByContent(
+      purchaseOrderClassification.type,
+      purchaseOrderText,
+      purchaseOrderClassification.confidence
+    );
+    const goodsReceiptNoteVerification = verifyClassificationByContent(
+      goodsReceiptNoteClassification.type,
+      goodsReceiptNoteText,
+      goodsReceiptNoteClassification.confidence
+    );
+    const vendorInvoiceVerification = verifyClassificationByContent(
+      vendorInvoiceClassification.type,
+      vendorInvoiceText,
+      vendorInvoiceClassification.confidence
+    );
 
     const purchaseOrderData = extractDocumentData(
       purchaseOrderClassification.type,
@@ -143,10 +167,13 @@ export default function UploadPage() {
       classifications: {
         purchaseOrder: purchaseOrderClassification.type,
         purchaseOrderConfidence: purchaseOrderClassification.confidence,
+        purchaseOrderVerification,
         goodsReceiptNote: goodsReceiptNoteClassification.type,
         goodsReceiptNoteConfidence: goodsReceiptNoteClassification.confidence,
+        goodsReceiptNoteVerification,
         vendorInvoice: vendorInvoiceClassification.type,
         vendorInvoiceConfidence: vendorInvoiceClassification.confidence,
+        vendorInvoiceVerification,
       },
       extractedData: {
         purchaseOrder: purchaseOrderData,
