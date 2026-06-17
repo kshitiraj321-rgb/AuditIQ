@@ -13,11 +13,35 @@ function buildTokenRegex(token: string) {
   return new RegExp(`(?:^|[^a-zA-Z0-9])(?:${tokenPattern})(?:$|[^a-zA-Z0-9])`, "i");
 }
 
-function matchesAnyToken(fileName: string, tokens: string[]) {
-  return tokens.some((token) => buildTokenRegex(token).test(fileName));
+function matchesToken(fileName: string, token: string): boolean {
+  return buildTokenRegex(token).test(fileName);
 }
 
-export function classifyDocument(fileName: string) {
+function matchesAnyToken(fileName: string, tokens: string[]) {
+  return tokens.some((token) => matchesToken(fileName, token));
+}
+
+function getMatchedTokenConfidence(fileName: string, tokens: string[]): number {
+  // Find which token actually matched
+  const matchedToken = tokens.find((token) => matchesToken(fileName, token));
+  
+  if (!matchedToken) {
+    return 80; // fallback to medium if no token found (shouldn't happen)
+  }
+
+  // Single-word tokens (no hyphens, underscores, or multiple words): 95
+  // Compound/long-form tokens: 80
+  const hasCompoundCharacters =
+    matchedToken.includes("-") ||
+    matchedToken.includes("_") ||
+    matchedToken.split(" ").length > 1;
+
+  return hasCompoundCharacters ? 80 : 95;
+}
+
+export function classifyDocument(
+  fileName: string
+): { type: string; confidence: number } {
   const name = fileName.toLowerCase();
 
   const purchaseOrderTokens = [
@@ -44,16 +68,19 @@ export function classifyDocument(fileName: string) {
   ];
 
   const matches = [
-    { type: "Purchase Order", matched: matchesAnyToken(name, purchaseOrderTokens) },
-    { type: "Goods Receipt Note", matched: matchesAnyToken(name, grnTokens) },
-    { type: "Vendor Invoice", matched: matchesAnyToken(name, invoiceTokens) },
+    { type: "Purchase Order", tokens: purchaseOrderTokens, matched: matchesAnyToken(name, purchaseOrderTokens) },
+    { type: "Goods Receipt Note", tokens: grnTokens, matched: matchesAnyToken(name, grnTokens) },
+    { type: "Vendor Invoice", tokens: invoiceTokens, matched: matchesAnyToken(name, invoiceTokens) },
   ];
 
-  const matchedTypes = matches.filter((entry) => entry.matched).map((entry) => entry.type);
+  const matchedEntries = matches.filter((entry) => entry.matched);
 
-  if (matchedTypes.length !== 1) {
-    return "Unknown";
+  if (matchedEntries.length !== 1) {
+    return { type: "Unknown", confidence: 0 };
   }
 
-  return matchedTypes[0];
+  const matchedEntry = matchedEntries[0];
+  const confidence = getMatchedTokenConfidence(name, matchedEntry.tokens);
+
+  return { type: matchedEntry.type, confidence };
 }

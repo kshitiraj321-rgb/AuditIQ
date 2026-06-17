@@ -15,8 +15,11 @@ type AnalysisResult = {
   };
   classifications: {
     purchaseOrder: string;
+    purchaseOrderConfidence: number;
     goodsReceiptNote: string;
+    goodsReceiptNoteConfidence: number;
     vendorInvoice: string;
+    vendorInvoiceConfidence: number;
   };
   extractedData: {
     purchaseOrder: {
@@ -85,8 +88,11 @@ const fallbackAnalysis: AnalysisResult = {
   },
   classifications: {
     purchaseOrder: "Purchase Order",
+    purchaseOrderConfidence: 95,
     goodsReceiptNote: "Goods Receipt Note",
+    goodsReceiptNoteConfidence: 95,
     vendorInvoice: "Vendor Invoice",
+    vendorInvoiceConfidence: 95,
   },
   extractedData: {
     purchaseOrder: {

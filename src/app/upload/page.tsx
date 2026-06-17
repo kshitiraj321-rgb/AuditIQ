@@ -32,8 +32,11 @@ type AnalysisResult = {
   };
   classifications: {
     purchaseOrder: string;
+    purchaseOrderConfidence: number;
     goodsReceiptNote: string;
+    goodsReceiptNoteConfidence: number;
     vendorInvoice: string;
+    vendorInvoiceConfidence: number;
   };
   extractedData: {
     purchaseOrder: ReturnType<typeof extractDocumentData>;
@@ -79,15 +82,15 @@ export default function UploadPage() {
       ]);
 
     const purchaseOrderData = extractDocumentData(
-      purchaseOrderClassification,
+      purchaseOrderClassification.type,
       purchaseOrderText
     );
     const goodsReceiptNoteData = extractDocumentData(
-      goodsReceiptNoteClassification,
+      goodsReceiptNoteClassification.type,
       goodsReceiptNoteText
     );
     const vendorInvoiceData = extractDocumentData(
-      vendorInvoiceClassification,
+      vendorInvoiceClassification.type,
       vendorInvoiceText
     );
     const matchResult = matchDocuments({
@@ -138,9 +141,12 @@ export default function UploadPage() {
         vendorInvoice: invoiceFile!.name,
       },
       classifications: {
-        purchaseOrder: purchaseOrderClassification,
-        goodsReceiptNote: goodsReceiptNoteClassification,
-        vendorInvoice: vendorInvoiceClassification,
+        purchaseOrder: purchaseOrderClassification.type,
+        purchaseOrderConfidence: purchaseOrderClassification.confidence,
+        goodsReceiptNote: goodsReceiptNoteClassification.type,
+        goodsReceiptNoteConfidence: goodsReceiptNoteClassification.confidence,
+        vendorInvoice: vendorInvoiceClassification.type,
+        vendorInvoiceConfidence: vendorInvoiceClassification.confidence,
       },
       extractedData: {
         purchaseOrder: purchaseOrderData,
