@@ -103,8 +103,77 @@ function extractNumberAfterLabel(
 }
 
 function extractLineItemValues(documentText: string) {
-  const lineItemPattern =
-    /\b[A-Z]{2,6}\s+([0-9][0-9,]*)\s+INR\s*([0-9][0-9,]*(?:\.[0-9]+)?)\s+INR\s*([0-9][0-9,]*(?:\.[0-9]+)?)/i;
+  // Header-aware table parsing (preferred)
+  const lines = documentText.split(/\r?\n/);
+  const headerRegex = /\b(qty|quantity)\b.*\b(unit ?price|rate|price)\b.*\b(amount|line ?total|line_amount|line total)\b/i;
+
+  let headerIndex = -1;
+  let headerLine = "";
+
+  for (let i = 0; i < lines.length; i++) {
+    if (headerRegex.test(lines[i])) {
+      headerIndex = i;
+      headerLine = lines[i];
+      break;
+    }
+  }
+
+  if (headerIndex >= 0) {
+    // Split header into columns by runs of two or more spaces (common OCR/table delimiter)
+    const headerFields = headerLine.split(/\s{2,}/).map((s) => s.trim());
+    const findHeaderIndex = (rx: RegExp) => headerFields.findIndex((h) => rx.test(h));
+    const qtyIndex = findHeaderIndex(/\b(qty|quantity)\b/i);
+    const priceIndex = findHeaderIndex(/\b(unit ?price|rate|price)\b/i);
+    const amountIndex = findHeaderIndex(/\b(amount|line ?total|line_amount|line total)\b/i);
+
+    for (let i = headerIndex + 1; i < lines.length; i++) {
+      const row = lines[i].trim();
+      if (!row) break; // stop at blank line
+
+      let qtyText: string | null = null;
+      let priceText: string | null = null;
+      let amountText: string | null = null;
+
+      // Split row into fields using same delimiter
+      const rowFields = row.split(/\s{2,}/).map((s) => s.trim());
+      if (qtyIndex >= 0 && priceIndex >= 0 && amountIndex >= 0 && rowFields.length > Math.max(qtyIndex, priceIndex, amountIndex)) {
+        qtyText = rowFields[qtyIndex];
+        priceText = rowFields[priceIndex];
+        amountText = rowFields[amountIndex];
+      } else {
+        // Loose fallback: pick first three numeric tokens on the row
+        const numRegex = /[0-9][0-9,]*(?:\.[0-9]+)?/g;
+        const nums = row.match(numRegex);
+        if (nums && nums.length >= 3) {
+          qtyText = nums[0];
+          priceText = nums[1];
+          amountText = nums[2];
+        }
+      }
+
+      let q = qtyText ? parseNumber(qtyText) : null;
+      let p = priceText ? parseNumber(priceText) : null;
+      let a = amountText ? parseNumber(amountText) : null;
+
+      // If column-slice parsing failed, try loose numeric token extraction on the row
+      if ((q === null || p === null || a === null)) {
+        const numRegex = /[0-9][0-9,]*(?:\.[0-9]+)?/g;
+        const nums = row.match(numRegex);
+        if (nums && nums.length >= 3) {
+          q = parseNumber(nums[0]);
+          p = parseNumber(nums[1]);
+          a = parseNumber(nums[2]);
+        }
+      }
+
+      if (q !== null && p !== null && a !== null) {
+        return { quantity: q, unitPrice: p, amount: a };
+      }
+    }
+  }
+
+  // Legacy fallback: preserve original strict pattern to avoid regressions
+  const lineItemPattern = /\b[A-Z]{2,6}\s+([0-9][0-9,]*)\s+INR\s*([0-9][0-9,]*(?:\.[0-9]+)?)\s+INR\s*([0-9][0-9,]*(?:\.[0-9]+)?)/i;
   const match = documentText.match(lineItemPattern);
 
   if (!match) {
