@@ -6,6 +6,7 @@ type ExtractedDocumentData = {
   grnNumber: string | null;
   invoiceNumber: string | null;
   date: string;
+  normalizedDate: string | null;
   quantity: number;
   unitPrice: number;
   amount: number;
@@ -107,6 +108,105 @@ function isValidIdentifier(value: string | null, minLength: number = 2, maxLengt
   if (value.length < minLength || value.length > maxLength) return false;
   // Allow alphanumeric, hyphens, dots, slashes, spaces
   return /^[a-zA-Z0-9\-.\/ ]+$/.test(value);
+}
+
+// ---------------------------------------------------------------------------
+// Priority 4C-1 — Date Normalization
+// ---------------------------------------------------------------------------
+
+const MONTH_NAMES: Record<string, string> = {
+  jan: "01", january: "01",
+  feb: "02", february: "02",
+  mar: "03", march: "03",
+  apr: "04", april: "04",
+  may: "05",
+  jun: "06", june: "06",
+  jul: "07", july: "07",
+  aug: "08", august: "08",
+  sep: "09", september: "09",
+  oct: "10", october: "10",
+  nov: "11", november: "11",
+  dec: "12", december: "12",
+};
+
+function padTwo(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function toIsoDate(year: number, month: number, day: number): string | null {
+  if (month < 1 || month > 12) return null;
+  if (day < 1 || day > 31) return null;
+  if (year < 1900 || year > 2099) return null;
+  return `${year}-${padTwo(month)}-${padTwo(day)}`;
+}
+
+function isValidDateString(value: string | null): boolean {
+  if (!value) return false;
+  if (value.length < 8 || value.length > 35) return false;
+  // Relaxed charset: allows comma for "June 12, 2026" patterns
+  return /^[a-zA-Z0-9\-.,\/ ]+$/.test(value);
+}
+
+export function normalizeDate(rawDate: string): string | null {
+  if (!rawDate) return null;
+
+  // Normalize commas → spaces so "June 12, 2026" → "June 12 2026"
+  const cleaned = rawDate.replace(/,/g, " ").replace(/\s+/g, " ").trim();
+
+  // 1. YYYY-MM-DD (ISO 8601 — direct, no reformat needed)
+  const iso = cleaned.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (iso) {
+    return toIsoDate(parseInt(iso[1], 10), parseInt(iso[2], 10), parseInt(iso[3], 10));
+  }
+
+  // 2. YYYY/MM/DD
+  const yyyySlash = cleaned.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+  if (yyyySlash) {
+    return toIsoDate(parseInt(yyyySlash[1], 10), parseInt(yyyySlash[2], 10), parseInt(yyyySlash[3], 10));
+  }
+
+  // 3. DD/MM/YYYY — default locale: Indian procurement (DD/MM)
+  const ddSlash = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (ddSlash) {
+    return toIsoDate(parseInt(ddSlash[3], 10), parseInt(ddSlash[2], 10), parseInt(ddSlash[1], 10));
+  }
+
+  // 4. DD-MM-YYYY
+  const ddHyphen = cleaned.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (ddHyphen) {
+    return toIsoDate(parseInt(ddHyphen[3], 10), parseInt(ddHyphen[2], 10), parseInt(ddHyphen[1], 10));
+  }
+
+  // 5. DD.MM.YYYY
+  const ddDot = cleaned.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (ddDot) {
+    return toIsoDate(parseInt(ddDot[3], 10), parseInt(ddDot[2], 10), parseInt(ddDot[1], 10));
+  }
+
+  // 6. DD Mon YYYY / DD-Mon-YYYY / DD Month YYYY / DD-Month-YYYY
+  const ddMon = cleaned.match(/^(\d{1,2})[\s-]([a-zA-Z]+)[\s-](\d{4})$/);
+  if (ddMon) {
+    const d = parseInt(ddMon[1], 10);
+    const monthKey = ddMon[2].toLowerCase();
+    const y = parseInt(ddMon[3], 10);
+    const m = MONTH_NAMES[monthKey];
+    if (!m) return null;
+    return toIsoDate(y, parseInt(m, 10), d);
+  }
+
+  // 7. Month DD YYYY / Mon DD YYYY (handles "June 12 2026" after comma strip)
+  const monDd = cleaned.match(/^([a-zA-Z]+)\s+(\d{1,2})\s+(\d{4})$/);
+  if (monDd) {
+    const monthKey = monDd[1].toLowerCase();
+    const d = parseInt(monDd[2], 10);
+    const y = parseInt(monDd[3], 10);
+    const m = MONTH_NAMES[monthKey];
+    if (!m) return null;
+    return toIsoDate(y, parseInt(m, 10), d);
+  }
+
+  // No recognized format — never guess, never throw
+  return null;
 }
 
 function extractLineItemValues(documentText: string) {
@@ -256,17 +356,16 @@ function extractDocumentIdentifiers(documentText: string) {
     ["Reference Note", "Terms", "Due Date", "Payment Terms", "Notes"]
   ) : null;
 
-  const date = isValidIdentifier(
-    extractTextBetweenLabels(documentText, 
-      ["Document Date", "Date:", "Invoice Date", "Date of Issue", "Issue Date", "Created"], 
-      ["Currency", "Qty", "Quantity", "Items", "Line Items"]
-    ),
-    8,
-    30
-  ) ? extractTextBetweenLabels(documentText, 
-    ["Document Date", "Date:", "Invoice Date", "Date of Issue", "Issue Date", "Created"], 
-    ["Currency", "Qty", "Quantity", "Items", "Line Items"]
-  ) : null;
+  const dateLabels = [
+    "Document Date", "Date:", "Invoice Date", "Date of Issue", "Issue Date",
+    "Order Date", "PO Date", "Date of Order",
+    "Receipt Date", "Delivery Date", "Received On", "Received Date", "GRN Date",
+    "Bill Date", "Tax Invoice Date",
+  ];
+  const dateEndLabels = ["Currency", "Qty", "Quantity", "Items", "Line Items"];
+  const rawDateValue = extractTextBetweenLabels(documentText, dateLabels, dateEndLabels);
+  const date = isValidDateString(rawDateValue) ? rawDateValue : null;
+  const normalizedDate = date !== null ? normalizeDate(date) : null;
 
   const totalAmount =
     extractNumberAfterLabel(documentText, ["Grand Total"]) ?? null;
@@ -278,6 +377,7 @@ function extractDocumentIdentifiers(documentText: string) {
     grnNumber,
     invoiceNumber,
     date,
+    normalizedDate,
     totalAmount,
   };
 }
@@ -317,6 +417,7 @@ export function extractDocumentData(
     fixture.documentNumber;
   const vendorName = identifiers.vendorName ?? fixture.vendor;
   const date = identifiers.date ?? fixture.date;
+  const normalizedDate = identifiers.normalizedDate ?? normalizeDate(fixture.date);
   const quantity = extractedValues.quantity ?? fixture.quantity;
   const unitPrice = extractedValues.unitPrice ?? fixture.unitPrice;
   const amount = extractedValues.amount ?? fixture.amount;
@@ -337,6 +438,7 @@ export function extractDocumentData(
       identifiers.invoiceNumber ??
       (documentType === "Vendor Invoice" ? fixture.documentNumber : null),
     date,
+    normalizedDate,
     quantity,
     unitPrice,
     amount,
