@@ -43,20 +43,22 @@ export function detectExceptions({
 }: DetectExceptionsInput): DetectedException[] {
   const exceptions: DetectedException[] = [];
 
+  if (!vendorInvoice) {
+    addException(exceptions, "Missing Invoice");
+    return exceptions;
+  }
+
+  if (!goodsReceiptNote) {
+    addException(exceptions, "Missing GRN");
+    return exceptions;
+  }
+
   if (!matchResult.quantityMatch.matched) {
     addException(exceptions, "Quantity Mismatch");
   }
 
   if (!matchResult.priceMatch.matched) {
     addException(exceptions, "Price Variance");
-  }
-
-  if (!vendorInvoice) {
-    addException(exceptions, "Missing Invoice");
-  }
-
-  if (!goodsReceiptNote) {
-    addException(exceptions, "Missing GRN");
   }
 
   if (

@@ -1,7 +1,10 @@
 import type { DetectedException } from "@/lib/exceptionEngine";
 
 type ExtractedDocument = {
+  quantity: number;
+  unitPrice: number;
   amount: number;
+  totalAmount: number;
 } | null;
 
 type FinancialExposureInput = {
@@ -45,7 +48,8 @@ export function calculateFinancialExposure({
       addBreakdownItem(
         breakdown,
         exception.type,
-        Math.abs(purchaseOrder.amount - goodsReceiptNote.amount)
+        Math.abs(purchaseOrder.quantity - goodsReceiptNote.quantity) *
+        purchaseOrder.unitPrice
       );
       continue;
     }
@@ -54,23 +58,23 @@ export function calculateFinancialExposure({
       addBreakdownItem(
         breakdown,
         exception.type,
-        Math.abs(vendorInvoice.amount - purchaseOrder.amount)
+        purchaseOrder.quantity * Math.abs(vendorInvoice.unitPrice - purchaseOrder.unitPrice)
       );
       continue;
     }
 
     if (exception.type === "Missing Invoice" && purchaseOrder) {
-      addBreakdownItem(breakdown, exception.type, purchaseOrder.amount);
+      addBreakdownItem(breakdown, exception.type, purchaseOrder.totalAmount);
       continue;
     }
 
     if (exception.type === "Missing GRN" && vendorInvoice) {
-      addBreakdownItem(breakdown, exception.type, vendorInvoice.amount);
+      addBreakdownItem(breakdown, exception.type, vendorInvoice.totalAmount);
       continue;
     }
 
     if (exception.type === "Duplicate Invoice" && vendorInvoice) {
-      addBreakdownItem(breakdown, exception.type, vendorInvoice.amount);
+      addBreakdownItem(breakdown, exception.type, vendorInvoice.totalAmount);
     }
   }
 

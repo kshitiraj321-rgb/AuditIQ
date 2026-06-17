@@ -104,7 +104,7 @@ function extractNumberAfterLabel(
 
 function extractLineItemValues(documentText: string) {
   const lineItemPattern =
-    /\bPCS\s+([0-9][0-9,]*)\s+INR\s*([0-9][0-9,]*(?:\.[0-9]+)?)\s+INR\s*([0-9][0-9,]*(?:\.[0-9]+)?)/i;
+    /\b[A-Z]{2,6}\s+([0-9][0-9,]*)\s+INR\s*([0-9][0-9,]*(?:\.[0-9]+)?)\s+INR\s*([0-9][0-9,]*(?:\.[0-9]+)?)/i;
   const match = documentText.match(lineItemPattern);
 
   if (!match) {
@@ -174,6 +174,8 @@ export function extractDocumentData(
 
   const identifiers = extractDocumentIdentifiers(documentText);
   const extractedValues = extractStructuredValues(documentText);
+  console.log("IDENTIFIERS", identifiers);
+  console.log("VALUES", extractedValues);
   const documentNumber =
     identifiers.documentNumber ??
     identifiers.poNumber ??
