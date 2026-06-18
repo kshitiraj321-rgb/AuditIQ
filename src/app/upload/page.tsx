@@ -122,13 +122,46 @@ export default function UploadPage() {
       goodsReceiptNote: goodsReceiptNoteData,
       vendorInvoice: vendorInvoiceData,
     });
+    // Load existing audited invoices history
+    let existingInvoices: { vendorName: string; invoiceNumber: string }[] = [];
+    try {
+      const stored = localStorage.getItem("auditiq_audited_invoices");
+      if (stored) {
+        existingInvoices = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error("Failed to load invoice history", e);
+    }
+
     const exceptions = detectExceptions({
       purchaseOrder: purchaseOrderData,
       goodsReceiptNote: goodsReceiptNoteData,
       vendorInvoice: vendorInvoiceData,
       matchResult,
-      existingInvoiceNumbers: [],
+      existingInvoices,
     });
+
+    // Save invoice to history if it has valid identifiers and was not detected as a duplicate
+    const hasDuplicateException = exceptions.some((e) => e.type === "Duplicate Invoice");
+    const currentVendor = vendorInvoiceData?.vendorName || vendorInvoiceData?.vendor || null;
+    const currentInvoiceNum = vendorInvoiceData?.invoiceNumber || vendorInvoiceData?.documentNumber || null;
+
+    if (currentVendor && currentInvoiceNum && !hasDuplicateException) {
+      const isAlreadySaved = existingInvoices.some(
+        (inv) =>
+          inv.vendorName.trim().toUpperCase() === currentVendor.trim().toUpperCase() &&
+          inv.invoiceNumber.trim().toUpperCase() === currentInvoiceNum.trim().toUpperCase()
+      );
+      if (!isAlreadySaved) {
+        const updatedInvoices = [...existingInvoices, { vendorName: currentVendor, invoiceNumber: currentInvoiceNum }];
+        try {
+          localStorage.setItem("auditiq_audited_invoices", JSON.stringify(updatedInvoices));
+        } catch (e) {
+          console.error("Failed to save invoice history", e);
+        }
+      }
+    }
+
     const financialExposure = calculateFinancialExposure({
       purchaseOrder: purchaseOrderData,
       goodsReceiptNote: goodsReceiptNoteData,

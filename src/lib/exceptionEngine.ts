@@ -7,6 +7,9 @@ type ExtractedDocument = {
   unitPrice: number;
   amount: number;
   normalizedDate?: string | null;
+  invoiceNumber?: string | null;
+  vendorName?: string | null;
+  vendor?: string | null;
 } | null;
 
 export type DetectedException = {
@@ -26,7 +29,7 @@ export type DetectExceptionsInput = {
   goodsReceiptNote: ExtractedDocument;
   vendorInvoice: ExtractedDocument;
   matchResult: MatchDocumentsResult;
-  existingInvoiceNumbers?: string[];
+  existingInvoices?: { vendorName: string; invoiceNumber: string }[];
 };
 
 function addException(
@@ -46,7 +49,7 @@ export function detectExceptions({
   goodsReceiptNote,
   vendorInvoice,
   matchResult,
-  existingInvoiceNumbers = [],
+  existingInvoices = [],
 }: DetectExceptionsInput): DetectedException[] {
   const exceptions: DetectedException[] = [];
 
@@ -68,11 +71,20 @@ export function detectExceptions({
     addException(exceptions, "Price Variance");
   }
 
-  if (
-    vendorInvoice &&
-    existingInvoiceNumbers.includes(vendorInvoice.documentNumber)
-  ) {
-    addException(exceptions, "Duplicate Invoice");
+  if (vendorInvoice) {
+    const invoiceNum = vendorInvoice.invoiceNumber ?? vendorInvoice.documentNumber;
+    const vendorName = vendorInvoice.vendorName ?? vendorInvoice.vendor;
+
+    if (invoiceNum && vendorName) {
+      const isDuplicate = existingInvoices.some(
+        (inv) =>
+          inv.vendorName.trim().toUpperCase() === vendorName.trim().toUpperCase() &&
+          inv.invoiceNumber.trim().toUpperCase() === invoiceNum.trim().toUpperCase()
+      );
+      if (isDuplicate) {
+        addException(exceptions, "Duplicate Invoice");
+      }
+    }
   }
 
   const timelineResult = validateTimeline(
