@@ -2,52 +2,89 @@
 
 AuditIQ is a Next.js application for three-way document analysis across Purchase Orders, Goods Receipt Notes, and Vendor Invoices.
 
-## Problem Statement
+## 1. Project Overview
 
-Finance and audit teams often review procurement documents manually to catch mismatches, exception patterns, and exposure risk. That process is slow, repetitive, and hard to standardize across cases.
+Finance and audit teams often review procurement documents manually to catch mismatches, exception patterns, and exposure risk. This process is slow, repetitive, and hard to standardize. 
 
-## Solution Overview
+AuditIQ provides a lightweight, automated web-based workflow that accepts these three documents, runs them through a deterministic analysis pipeline, and presents the resulting exceptions, financial exposure, risk scores, recommendations, and explainability narratives in a structured dashboard.
 
-AuditIQ provides a lightweight web-based workflow that accepts three documents, runs them through a deterministic analysis pipeline, and presents the resulting exceptions, exposure, risk, recommendations, and explainability in a structured results view.
+---
 
-Blueprint V1 is complete and the current repository reflects that MVP state.
+## 2. Source of Truth
 
-## Application Screenshots
+When determining the factual state of this project, the following hierarchy of authority applies:
 
-![AuditIQ Dashboard](docs/screenshots/dashboard.png)
+1. **AuditIQ Master Bible**
+2. **Repository Source Code**
+3. **Git History & Stable Releases**
+4. **Project Documentation**
+5. **Future Planning Documents**
 
-![AuditIQ Upload Screen 1](docs/screenshots/upload.png)
+Repository code and Git history strictly override any assumptions, simulated capabilities, or historical chat memory.
 
-![AuditIQ Upload Screen 2](docs/screenshots/upload-2.png)
+---
 
-![AuditIQ Results Screen 1](docs/screenshots/results.png)
+## 3. Development Baseline
 
-![AuditIQ Results Screen 2](docs/screenshots/results-2.png)
+Blueprint V1 Status: Complete
 
-## Features
-
-- Upload PO, GRN, and Invoice documents
-- Classify uploaded filenames into document types
-- Extract structured document data
-- Perform three-way matching across quantity, unit price, and amount
-- Detect procurement exceptions
-- Calculate estimated financial exposure
-- Derive a risk score and risk level
-- Generate recommendations
-- Generate explainability output
-- Persist a single analysis snapshot in session storage
-- View KPI summaries on the dashboard and detailed results on the results page
-
-## System Workflow
+**Current Development Baseline**
 
 ```text
-Upload Documents
+Tag:
+stable-priority-4c5
+
+Commit:
+fd23be0
+```
+
+This baseline contains the following completed priority milestones:
+* Priority 5B
+* Priority 5D
+* Priority 4C-1
+* Priority 4C-2
+* Priority 4C-3
+* Priority 4C-4
+* Priority 4C-5
+
+---
+
+## 4. Current Capabilities
+
+The following capabilities are actively implemented and verifiable in the codebase:
+
+- [x] Document Classification (Filename heuristics)
+- [x] Content-Based Classification Verification & Confidence Scoring
+- [x] PDF Reading (Client-side text extraction via PDF.js)
+- [x] Data Extraction (Header-aware line item parsing with fixture fallback)
+- [x] Date Normalization (Multi-format parsing)
+- [x] Three-Way Matching (Quantity, Unit Price, Amount)
+- [x] PO Number & GRN Number Cross-Document Matching
+- [x] Exception Detection
+- [x] Timeline Validation (Date sequencing)
+- [x] Duplicate Invoice Detection (Backed by local storage)
+- [x] Financial Exposure Calculation
+- [x] Risk Assessment Scoring
+- [x] Deterministic Recommendation Engine
+- [x] Explainability Engine
+- [x] Analysis Snapshot generation
+- [x] Dashboard KPI summaries
+- [x] Detailed Results rendering
+
+---
+
+## 5. System Architecture
+
+The analysis runs via a deterministic, linear, synchronous pipeline executing entirely in the browser:
+
+```text
+Upload
 ↓
 Classification
 ↓
 Extraction
 ↓
-Three-Way Matching
+Matching
 ↓
 Exception Detection
 ↓
@@ -62,39 +99,103 @@ Explainability
 Results
 ```
 
-## Architecture
+---
 
-AuditIQ uses the Next.js App Router with page-level orchestration and small synchronous analysis engines in `src/lib`.
+## 6. Implemented Exception Types
 
-- `src/app/upload/page.tsx` orchestrates the pipeline and stores the latest analysis snapshot
-- `src/app/results/page.tsx` reads the snapshot and renders the detailed result experience
-- `src/app/page.tsx` renders dashboard KPIs from the latest stored analysis when present
-- `src/lib/*` contains the rule-based engines for classification, extraction, matching, exceptions, exposure, risk, recommendations, and explainability
+The system actively detects the following procurement exceptions:
 
-The current architecture is intentionally simple and browser-local. It is designed to demonstrate the V1 workflow without introducing backend infrastructure.
+*   **Quantity Mismatch:** Ordered vs. Received vs. Invoiced quantities differ.
+*   **Price Variance:** Ordered vs. Received vs. Invoiced unit prices differ.
+*   **Missing Invoice:** No vendor invoice uploaded.
+*   **Missing GRN:** No goods receipt note uploaded.
+*   **Duplicate Invoice:** The invoice number for the specified vendor has already been processed (tracked locally).
+*   **Timeline Deviation:** Document dates are out of chronological order (e.g., Invoice predates PO). *(Note: Currently logged as an exception but lacks financial exposure rules).*
 
-## Technology Stack
+---
 
-- Next.js 16
-- React 19
-- TypeScript 5
-- Tailwind CSS v4
-- ESLint 9
+## 7. Stable Releases
 
-## Project Structure
+| Tag | Description |
+| --- | ----------- |
+| `stable-priority-5b` | Baseline application, UI shell, filename classification, and fixture-based extraction. |
+| `stable-priority-5d` | Added content-based classification verification and confidence scoring. |
+| `stable-priority-4c1` | Added robust date normalization support across multiple localized formats. |
+| `stable-priority-4c3` | Implemented cross-document identifier matching (PO/GRN numbers). |
+| `stable-priority-4c4` | Added the timeline validation engine for date sequencing logic. |
+| `stable-priority-4c5` | Implemented duplicate invoice history tracking and validation using `localStorage`. |
+
+---
+
+## 8. Technical Architecture
+
+*   **Frontend Stack:** Next.js 16 (App Router), React 19, TypeScript 5, Tailwind CSS v4.
+*   **State Management:** React local state (`useState`, `useEffect`). No global state management library is used.
+*   **Storage Mechanisms:**
+    *   **`sessionStorage`:** Temporarily stores the completed `auditIQAnalysis` snapshot passed from Upload to Results/Dashboard.
+    *   **`localStorage`:** Maintains a persistent client-side list of `auditiq_audited_invoices` across sessions to power Duplicate Invoice Detection.
+*   **Compute Model:** 100% Client-side. PDF parsing uses a public web worker (`pdf.worker.min.mjs`).
+
+---
+
+## 9. Current Limitations
+
+*   **Rule-based classification:** Strongly relies on filenames containing specific strings (`po`, `grn`, `inv`).
+*   **Regex-based extraction:** Extraction relies heavily on regex labeling. If text extraction fails or labels differ, it degrades silently to hardcoded mock fixture data.
+*   **Browser Persistence:** `sessionStorage` clears on tab close, meaning audit snapshots are volatile.
+*   **Local Invoice History:** Duplicate detection relies on `localStorage`, meaning it is isolated to a single browser profile and cannot serve team-wide validation.
+*   **No genuine OCR engine:** Unsearchable PDFs or scanned images will yield no text.
+*   **No Database Persistence.**
+*   **No Authentication.**
+
+---
+
+## 10. Technical Debt
+
+*   **Classification Brittle:** Mock-grade classification means misnamed files will enter the wrong pipeline slots, corrupting downstream matching.
+*   **Fixture Masking:** Extractor fallback mechanisms successfully prevent app crashes but mask parsing failures with pristine data.
+*   **Orchestration Coupling:** The entire multi-stage pipeline executes inline within `src/app/upload/page.tsx`.
+*   **Exception Coverage Gap:** `Timeline Deviation` generates an exception but does not yet influence financial exposure calculations, recommendations, or explainability text.
+*   **Missing Tests:** There are no automated test suites enforcing engine determinism.
+
+---
+
+## 11. Future Roadmap
+
+### Blueprint V1.1
+*   **Unified Document Upload:** Allowing users to drop multiple files into a single zone, with the system auto-classifying and assigning them to correct slots.
+
+### Blueprint V2
+*   **Production Extraction Layer:** Replacing regex and fixtures with deterministic document AI.
+*   **OCR Integration:** Enabling support for scanned paper documents.
+*   **Database Persistence:** Storing audit snapshots to a resilient backend.
+
+### Blueprint V3
+*   **Authentication & Roles:** Multi-user secure access.
+*   **Audit Repository:** Historical querying of past audits.
+
+### Blueprint V4
+*   **ERP Integrations:** Fetching POs directly from systems like SAP or Oracle.
+*   **Enterprise Features:** Custom policy engines and rule configuration.
+
+---
+
+## 12. Repository Structure
 
 ```text
 .
 ├── AuditIQ_Source_Inventory.md
+├── AuditIQ_Technical_Baseline_V1.md
 ├── README.md
 ├── docs
 │   ├── architecture.md
-│   └── project-overview.md
+│   ├── project-overview.md
+│   └── screenshots/
 ├── public
 │   ├── file.svg
 │   ├── globe.svg
 │   ├── next.svg
-│   ├── vercel.svg
+│   ├── pdf.worker.min.mjs
 │   └── window.svg
 ├── src
 │   ├── app
@@ -102,10 +203,8 @@ The current architecture is intentionally simple and browser-local. It is design
 │   │   ├── globals.css
 │   │   ├── layout.tsx
 │   │   ├── page.tsx
-│   │   ├── results
-│   │   │   └── page.tsx
-│   │   └── upload
-│   │       └── page.tsx
+│   │   ├── results/page.tsx
+│   │   └── upload/page.tsx
 │   └── lib
 │       ├── classifier.ts
 │       ├── exceptionEngine.ts
@@ -113,71 +212,54 @@ The current architecture is intentionally simple and browser-local. It is design
 │       ├── extractor.ts
 │       ├── financialExposure.ts
 │       ├── matcher.ts
+│       ├── pdfTextReader.ts
 │       ├── recommendationEngine.ts
-│       └── riskEngine.ts
-├── package.json
-├── tsconfig.json
+│       ├── riskEngine.ts
+│       └── timelineValidator.ts
 ├── eslint.config.mjs
 ├── next.config.ts
-└── postcss.config.mjs
+├── package.json
+└── tsconfig.json
 ```
 
-Notes:
+---
 
-- `src/components` is not present in the current codebase
-- `src/types` is not present in the current codebase
+## 13. Documentation Governance
 
-## Local Setup Instructions
+Future changes involving:
+*   New business rules
+*   New architecture decisions
+*   New stable releases
+*   New milestones
+*   Major scope decisions
 
-```bash
-npm install
-npm run dev
-```
+**Must be documented and added to project source documents.** Project knowledge should not live only inside chat conversations.
 
-Then open:
+---
 
-```text
-http://localhost:3000
-```
+## 14. GitHub Repository Usage
 
-Helpful commands:
+Future project reviews, audits, and development work should **verify conclusions against**:
+*   Repository source code
+*   Git history
+*   Stable tags
 
-```bash
-npm run build
-npm run lint
-```
+Do not rely solely on historical chat discussions to determine the current state of the application.
 
-## Current Limitations
+---
 
-- Mock Classification: filenames are used instead of document OCR or semantic parsing
-- Mock Extraction: extracted values are deterministic fixtures, not parsed document content
-- SessionStorage Persistence: the analysis snapshot is browser-local and temporary
-- Duplicate Invoice Framework (Partial): the exception exists, but the current upload flow does not provide persistent invoice history
+## 15. Final Assessment
 
-## Roadmap
+**Blueprint V1 Completion:** Confirmed Complete. The application successfully fulfills the MVP requirement of providing a single, deterministic analysis loop from upload to results.
 
-### Completed
+**Current Stable Baseline:** Version `fd23be0` correctly implements all core requirements, including recent priorities (Content Verification, Date Normalization, Timeline Validation, Duplicate Invoice Detection).
 
-- App Router structure
-- Upload page analysis pipeline
-- Results page rendering
-- Dashboard KPI summary
-- Exception detection
-- Financial exposure calculation
-- Risk scoring
-- Recommendation generation
-- Explainability generation
+**Current Maturity Level:** Prototype / Demonstration Grade. The architecture is sound and well-segregated, but data acquisition (Classification and Extraction) remains heavily heuristic and fixture-backed.
 
-### In Progress
+**Highest ROI Future Improvements (Ranked)**
 
-- None in the current repository state; Blueprint V1 is the active baseline
-
-### Future Enhancements
-
-- Replace mock classification with real document understanding
-- Replace mock extraction with OCR or structured document parsing
-- Add durable persistence beyond session storage
-- Introduce persistent duplicate-invoice history
-- Add authentication and role-based access
-- Add automated tests and fixture coverage
-- Add production telemetry and error reporting
+1. Unified Document Upload (Blueprint V1.1)
+2. Production Extraction Layer
+3. OCR Integration
+4. Database Persistence
+5. Authentication & Audit Repository
