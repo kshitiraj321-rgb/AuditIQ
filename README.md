@@ -27,6 +27,7 @@ Repository code and Git history strictly override any assumptions, simulated cap
 ## 3. Development Baseline
 
 Blueprint V1 Status: Complete
+Blueprint V1.1 Status: Complete
 
 **Current Development Baseline**
 
@@ -78,9 +79,13 @@ The following capabilities are actively implemented and verifiable in the codeba
 The analysis runs via a deterministic, linear, synchronous pipeline executing entirely in the browser:
 
 ```text
-Upload
+Upload Documents
 ↓
-Classification
+Classification Suggestions
+↓
+Assignment Review
+↓
+Validation Gate
 ↓
 Extraction
 ↓
@@ -98,6 +103,9 @@ Explainability
 ↓
 Results
 ```
+
+*Architectural Note on Unified Upload (V1.1):*
+The classifier acts strictly as an advisory system. User confirmation is required at the Assignment Review stage to pass the Validation Gate. The downstream pipeline (Extraction onwards) remains completely unchanged.
 
 ---
 
@@ -124,6 +132,7 @@ The system actively detects the following procurement exceptions:
 | `stable-priority-4c3` | Implemented cross-document identifier matching (PO/GRN numbers). |
 | `stable-priority-4c4` | Added the timeline validation engine for date sequencing logic. |
 | `stable-priority-4c5` | Implemented duplicate invoice history tracking and validation using `localStorage`. |
+| `stable-v1.1` | Unified Document Upload, Assignment Review UI, and Validation Gate integration. |
 
 ---
 
@@ -162,10 +171,13 @@ The system actively detects the following procurement exceptions:
 
 ## 11. Future Roadmap
 
-### Blueprint V1.1
-*   **Unified Document Upload:** Allowing users to drop multiple files into a single zone, with the system auto-classifying and assigning them to correct slots.
+### Blueprint V1
+*   **Complete**
 
-### Blueprint V2
+### Blueprint V1.1
+*   **Complete:** Unified Document Upload, Classification Suggestions, Assignment Review, and Validation Gate.
+
+### Blueprint V2 (Next Milestone)
 *   **Production Extraction Layer:** Replacing regex and fixtures with deterministic document AI.
 *   **OCR Integration:** Enabling support for scanned paper documents.
 *   **Database Persistence:** Storing audit snapshots to a resilient backend.
@@ -252,14 +264,15 @@ Do not rely solely on historical chat discussions to determine the current state
 
 **Blueprint V1 Completion:** Confirmed Complete. The application successfully fulfills the MVP requirement of providing a single, deterministic analysis loop from upload to results.
 
-**Current Stable Baseline:** Version `fd23be0` correctly implements all core requirements, including recent priorities (Content Verification, Date Normalization, Timeline Validation, Duplicate Invoice Detection).
+**Blueprint V1.1 Completion:** Confirmed Complete. The application successfully implements the Unified Document Upload workflow with user review and validation gates, preserving downstream business logic.
+
+**Current Stable Baseline:** Version `stable-v1.1` correctly implements all core requirements, including recent priorities and the Unified Upload enhancement.
 
 **Current Maturity Level:** Prototype / Demonstration Grade. The architecture is sound and well-segregated, but data acquisition (Classification and Extraction) remains heavily heuristic and fixture-backed.
 
 **Highest ROI Future Improvements (Ranked)**
 
-1. Unified Document Upload (Blueprint V1.1)
-2. Production Extraction Layer
-3. OCR Integration
-4. Database Persistence
-5. Authentication & Audit Repository
+1. Production Extraction Layer
+2. OCR Integration
+3. Database Persistence
+4. Authentication & Audit Repository

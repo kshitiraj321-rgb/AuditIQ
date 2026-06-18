@@ -62,30 +62,93 @@ const analysisStorageKey = "auditIQAnalysis";
 
 export default function UploadPage() {
   const router = useRouter();
-  const [poFile, setPoFile] = useState<File | null>(null);
-  const [grnFile, setGrnFile] = useState<File | null>(null);
-  const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
+
+  type StagedFile = {
+    id: string;
+    file: File;
+    suggestedType: string;
+    confidence: number;
+  };
+
+  const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
+  const [assignedFiles, setAssignedFiles] = useState<{
+    purchaseOrder: string | null;
+    goodsReceiptNote: string | null;
+    vendorInvoice: string | null;
+  }>({
+    purchaseOrder: null,
+    goodsReceiptNote: null,
+    vendorInvoice: null,
+  });
+
   const [validationMessage, setValidationMessage] = useState("");
 
-  const allDocumentsUploaded = Boolean(poFile && grnFile && invoiceFile);
+  const handleFilesDrop = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const files = Array.from(e.target.files);
+    
+    const newStagedFiles = files.map((file, idx) => {
+      const classification = classifyDocument(file.name);
+      return {
+        id: `${file.name}-${idx}-${Date.now()}`,
+        file,
+        suggestedType: classification.type,
+        confidence: classification.confidence,
+      };
+    });
+
+    setStagedFiles(newStagedFiles);
+
+    const findBestMatch = (type: string) => {
+      const candidates = newStagedFiles.filter(f => f.suggestedType === type && f.confidence >= 80);
+      if (candidates.length === 1) return candidates[0].id;
+      return null;
+    };
+
+    setAssignedFiles({
+      purchaseOrder: findBestMatch("Purchase Order"),
+      goodsReceiptNote: findBestMatch("Goods Receipt Note"),
+      vendorInvoice: findBestMatch("Vendor Invoice"),
+    });
+  };
+
+  const handleAssignmentChange = (slot: keyof typeof assignedFiles, fileId: string | null) => {
+    setAssignedFiles(prev => ({
+      ...prev,
+      [slot]: fileId === "" ? null : fileId
+    }));
+  };
+
+  const selectedPO = stagedFiles.find(f => f.id === assignedFiles.purchaseOrder)?.file || null;
+  const selectedGRN = stagedFiles.find(f => f.id === assignedFiles.goodsReceiptNote)?.file || null;
+  const selectedInvoice = stagedFiles.find(f => f.id === assignedFiles.vendorInvoice)?.file || null;
+
+  const allAssigned = Boolean(assignedFiles.purchaseOrder && assignedFiles.goodsReceiptNote && assignedFiles.vendorInvoice);
+  const assignedIds = [assignedFiles.purchaseOrder, assignedFiles.goodsReceiptNote, assignedFiles.vendorInvoice].filter(Boolean);
+  const hasDuplicates = new Set(assignedIds).size !== assignedIds.length;
+  const isValid = allAssigned && !hasDuplicates;
 
   async function handleAnalyzeClick() {
-    if (!allDocumentsUploaded) {
+    if (!isValid) {
       setValidationMessage(
-        "Please upload Purchase Order, Goods Receipt Note, and Vendor Invoice before analyzing."
+        "Please assign exactly one unique document to each slot."
       );
       return;
     }
 
-    const purchaseOrderClassification = classifyDocument(poFile!.name);
-    const goodsReceiptNoteClassification = classifyDocument(grnFile!.name);
-    const vendorInvoiceClassification = classifyDocument(invoiceFile!.name);
+    const poFile = selectedPO!;
+    const grnFile = selectedGRN!;
+    const invoiceFile = selectedInvoice!;
+
+    const purchaseOrderClassification = classifyDocument(poFile.name);
+    const goodsReceiptNoteClassification = classifyDocument(grnFile.name);
+    const vendorInvoiceClassification = classifyDocument(invoiceFile.name);
 
     const [purchaseOrderText, goodsReceiptNoteText, vendorInvoiceText] =
       await Promise.all([
-        readPdfText(poFile!),
-        readPdfText(grnFile!),
-        readPdfText(invoiceFile!),
+        readPdfText(poFile),
+        readPdfText(grnFile),
+        readPdfText(invoiceFile),
       ]);
 
     // Priority 5D — Content-Based Classification Verification
@@ -193,9 +256,9 @@ export default function UploadPage() {
 
     const analysisResult: AnalysisResult = {
       files: {
-        purchaseOrder: poFile!.name,
-        goodsReceiptNote: grnFile!.name,
-        vendorInvoice: invoiceFile!.name,
+        purchaseOrder: poFile.name,
+        goodsReceiptNote: grnFile.name,
+        vendorInvoice: invoiceFile.name,
       },
       classifications: {
         purchaseOrder: purchaseOrderClassification.type,
@@ -225,87 +288,85 @@ export default function UploadPage() {
     router.push("/results");
   }
 
+  const renderSlot = (label: string, slotKey: keyof typeof assignedFiles) => {
+    const isError = !assignedFiles[slotKey] || hasDuplicates;
+    return (
+      <div className={`border p-4 rounded ${isError ? 'border-red-400' : 'border-gray-200'}`}>
+        <h3 className="font-bold mb-2">{label}</h3>
+        <select
+          className="w-full border p-2 rounded"
+          value={assignedFiles[slotKey] || ""}
+          onChange={(e) => handleAssignmentChange(slotKey, e.target.value)}
+        >
+          <option value="">-- Select File --</option>
+          {stagedFiles.map((sf) => (
+            <option key={sf.id} value={sf.id}>
+              {sf.file.name} (Suggested: {sf.suggestedType})
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  };
+
   return (
     <main className="min-h-screen p-8">
       <h1 className="text-4xl font-bold mb-6">
         Upload Documents
       </h1>
 
-      <div className="space-y-4 mb-8">
-        <div className="border p-4 rounded">
-          Purchase Order (PO)
-        </div>
-
-        <div className="border p-4 rounded">
-          Goods Receipt Note (GRN)
-        </div>
-
-        <div className="border p-4 rounded">
-          Invoice
-        </div>
+      <div className="mb-8 border-2 border-dashed border-gray-300 p-8 text-center rounded">
+        <label className="cursor-pointer">
+          <span className="text-blue-600 font-semibold text-lg">Select Files to Audit</span>
+          <input
+            type="file"
+            multiple
+            className="hidden"
+            onChange={handleFilesDrop}
+          />
+        </label>
+        <p className="mt-2 text-gray-500">Upload your Purchase Order, Goods Receipt Note, and Vendor Invoice together.</p>
       </div>
 
-      <div className="space-y-4">
+      {stagedFiles.length > 0 && (
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Assignment Review</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {renderSlot("Purchase Order (PO)", "purchaseOrder")}
+            {renderSlot("Goods Receipt Note (GRN)", "goodsReceiptNote")}
+            {renderSlot("Vendor Invoice", "vendorInvoice")}
+          </div>
 
-  <div>
-    <label className="block mb-2">
-      Upload Purchase Order
-    </label>
-   <input
-  type="file"
-  onChange={(e) =>
-    setPoFile(e.target.files?.[0] || null)
-  }
-/>
-  </div>
+          {hasDuplicates && (
+            <div className="mt-4 border border-red-400 bg-red-50 p-4 rounded text-red-700">
+              Conflict: You have assigned the same file to multiple slots. Each slot must have a unique file.
+            </div>
+          )}
 
-  <div>
-    <label className="block mb-2">
-      Upload Goods Receipt Note
-    </label>
-    <input
-  type="file"
-  onChange={(e) =>
-    setGrnFile(e.target.files?.[0] || null)
-  }
-/>
-  </div>
+          {validationMessage && !hasDuplicates && (
+            <div className="mt-4 border border-yellow-400 bg-yellow-50 p-4 rounded text-yellow-700">
+              {validationMessage}
+            </div>
+          )}
 
-  <div>
-    <label className="block mb-2">
-      Upload Vendor Invoice
-    </label>
-    <input
-  type="file"
-  onChange={(e) =>
-    setInvoiceFile(e.target.files?.[0] || null)
-  }
-/>
-  </div>
-      <div className="mt-4 border p-4 rounded">
-  <p>PO: {poFile?.name || "Not Uploaded"}</p>
-  <p>GRN: {grnFile?.name || "Not Uploaded"}</p>
-  <p>Invoice: {invoiceFile?.name || "Not Uploaded"}</p>
-</div>
-</div>
-
-      {validationMessage && (
-        <div className="mt-4 border p-4 rounded">
-          {validationMessage}
+          <div className="mt-8">
+            <button
+              type="button"
+              onClick={() => {
+                void handleAnalyzeClick();
+              }}
+              disabled={!isValid}
+              className={`px-6 py-3 border rounded text-lg font-semibold ${
+                isValid
+                  ? "bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
+                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              Run Audit
+            </button>
+          </div>
         </div>
       )}
-
-      <div className="mt-4">
-        <button
-          type="button"
-          onClick={() => {
-            void handleAnalyzeClick();
-          }}
-          className="px-4 py-2 border rounded"
-        >
-          Analyze Documents
-        </button>
-      </div>
     </main>
   );
 }
