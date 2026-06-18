@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { MatchDocumentsResult } from "@/lib/matcher";
+import type { MatchDocumentsResult, MatchStringFieldResult } from "@/lib/matcher";
 import { useEffect, useState } from "react";
 import type { FinancialExposureResult } from "@/lib/financialExposure";
 import type { RiskAssessmentResult } from "@/lib/riskEngine";
@@ -29,6 +29,9 @@ type AnalysisResult = {
     purchaseOrder: {
       vendor: string;
       documentNumber: string;
+      poNumber: string | null;
+      grnNumber: string | null;
+      invoiceNumber: string | null;
       date: string;
       normalizedDate: string | null;
       quantity: number;
@@ -38,6 +41,9 @@ type AnalysisResult = {
     goodsReceiptNote: {
       vendor: string;
       documentNumber: string;
+      poNumber: string | null;
+      grnNumber: string | null;
+      invoiceNumber: string | null;
       date: string;
       normalizedDate: string | null;
       quantity: number;
@@ -47,6 +53,9 @@ type AnalysisResult = {
     vendorInvoice: {
       vendor: string;
       documentNumber: string;
+      poNumber: string | null;
+      grnNumber: string | null;
+      invoiceNumber: string | null;
       date: string;
       normalizedDate: string | null;
       quantity: number;
@@ -123,6 +132,9 @@ const fallbackAnalysis: AnalysisResult = {
     purchaseOrder: {
       vendor: "ABC Industries",
       documentNumber: "PO-1001",
+      poNumber: "PO-1001",
+      grnNumber: null,
+      invoiceNumber: null,
       date: "2026-06-12",
       normalizedDate: "2026-06-12",
       quantity: 100,
@@ -132,6 +144,9 @@ const fallbackAnalysis: AnalysisResult = {
     goodsReceiptNote: {
       vendor: "ABC Industries",
       documentNumber: "GRN-1001",
+      poNumber: "PO-1001",
+      grnNumber: "GRN-1001",
+      invoiceNumber: null,
       date: "2026-06-12",
       normalizedDate: "2026-06-12",
       quantity: 95,
@@ -141,6 +156,9 @@ const fallbackAnalysis: AnalysisResult = {
     vendorInvoice: {
       vendor: "ABC Industries",
       documentNumber: "INV-1001",
+      poNumber: "PO-1001",
+      grnNumber: "GRN-1001",
+      invoiceNumber: "INV-1001",
       date: "2026-06-12",
       normalizedDate: "2026-06-12",
       quantity: 100,
@@ -166,6 +184,24 @@ const fallbackAnalysis: AnalysisResult = {
       po: 50000,
       grn: 47500,
       invoice: 62000,
+    },
+    poNumberMatch: {
+      matched: true,
+      po: "PO-1001",
+      grn: "PO-1001",
+      invoice: "PO-1001",
+      normalizedPo: "PO1001",
+      normalizedGrn: "PO1001",
+      normalizedInvoice: "PO1001",
+    },
+    grnNumberMatch: {
+      matched: true,
+      po: null,
+      grn: "GRN-1001",
+      invoice: "GRN-1001",
+      normalizedPo: null,
+      normalizedGrn: "GRN1001",
+      normalizedInvoice: "GRN1001",
     },
   },
   exceptions: [
@@ -280,6 +316,8 @@ export default function ResultsPage() {
         <p>Quantity Match: {analysis.matchResult.quantityMatch.matched ? "Yes" : "No"}</p>
         <p>Price Match: {analysis.matchResult.priceMatch.matched ? "Yes" : "No"}</p>
         <p>Amount Match: {analysis.matchResult.amountMatch.matched ? "Yes" : "No"}</p>
+        <p>PO Number Match: {analysis.matchResult.poNumberMatch.matched ? "Yes" : "No"}</p>
+        <p>GRN Number Match: {analysis.matchResult.grnNumberMatch.matched ? "Yes" : "No"}</p>
         <p>Risk Score: {analysis.risk.score}</p>
         <p>Risk Level: {analysis.risk.level}</p>
       </div>
@@ -328,6 +366,12 @@ export default function ResultsPage() {
           </p>
           <p>
             Amount: PO {analysis.matchResult.amountMatch.po}, GRN {analysis.matchResult.amountMatch.grn}, Invoice {analysis.matchResult.amountMatch.invoice}
+          </p>
+          <p>
+            PO Number: PO {analysis.matchResult.poNumberMatch.po ?? "null"} (normalized: {analysis.matchResult.poNumberMatch.normalizedPo ?? "null"}), GRN {analysis.matchResult.poNumberMatch.grn ?? "null"} (normalized: {analysis.matchResult.poNumberMatch.normalizedGrn ?? "null"}), Invoice {analysis.matchResult.poNumberMatch.invoice ?? "null"} (normalized: {analysis.matchResult.poNumberMatch.normalizedInvoice ?? "null"})
+          </p>
+          <p>
+            GRN Number: PO {analysis.matchResult.grnNumberMatch.po ?? "null"} (normalized: {analysis.matchResult.grnNumberMatch.normalizedPo ?? "null"}), GRN {analysis.matchResult.grnNumberMatch.grn ?? "null"} (normalized: {analysis.matchResult.grnNumberMatch.normalizedGrn ?? "null"}), Invoice {analysis.matchResult.grnNumberMatch.invoice ?? "null"} (normalized: {analysis.matchResult.grnNumberMatch.normalizedInvoice ?? "null"})
           </p>
         </div>
       </div>
