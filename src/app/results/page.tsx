@@ -67,6 +67,7 @@ type AnalysisResult = {
   exceptions: {
     type: string;
     severity: string;
+    message?: string;
   }[];
   financialExposure: FinancialExposureResult;
   risk: RiskAssessmentResult;
@@ -384,7 +385,7 @@ export default function ResultsPage() {
         <ul className="list-disc ml-6 space-y-2">
           {analysis.exceptions.map((exception) => (
             <li key={`${exception.type}-${exception.severity}`}>
-              {exception.type} ({exception.severity})
+              {exception.type} ({exception.severity}){exception.message ? ` - ${exception.message}` : ""}
             </li>
           ))}
         </ul>
