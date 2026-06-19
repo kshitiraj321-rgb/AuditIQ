@@ -28,15 +28,16 @@ Repository code and Git history strictly override any assumptions, simulated cap
 
 Blueprint V1 Status: Complete
 Blueprint V1.1 Status: Complete
+Blueprint V1.1.1 Status: Complete
 
 **Current Development Baseline**
 
 ```text
 Tag:
-stable-priority-4c5
+stable-v1.1.1
 
 Commit:
-fd23be0
+dc4e41d
 ```
 
 This baseline contains the following completed priority milestones:
@@ -70,7 +71,7 @@ The following capabilities are actively implemented and verifiable in the codeba
 - [x] Explainability Engine
 - [x] Analysis Snapshot generation
 - [x] Dashboard KPI summaries
-- [x] Detailed Results rendering
+- [x] Exception Investigation Workspace (Exception-driven results view with per-exception drill-down, document detail cards with mismatch highlighting, financial impact, recommendations, and timeline visualization)
 
 ---
 
@@ -133,6 +134,7 @@ The system actively detects the following procurement exceptions:
 | `stable-priority-4c4` | Added the timeline validation engine for date sequencing logic. |
 | `stable-priority-4c5` | Implemented duplicate invoice history tracking and validation using `localStorage`. |
 | `stable-v1.1` | Unified Document Upload, Assignment Review UI, and Validation Gate integration. |
+| `stable-v1.1.1` | Exception Investigation Workspace: exception rail, document detail cards, per-exception drill-down, timeline visualization. |
 
 ---
 
@@ -176,6 +178,9 @@ The system actively detects the following procurement exceptions:
 
 ### Blueprint V1.1
 *   **Complete:** Unified Document Upload, Classification Suggestions, Assignment Review, and Validation Gate.
+
+### Blueprint V1.1.1
+*   **Complete:** Exception Investigation Workspace. Results page restructured from a flat text dump into a two-zone exception-driven investigation interface. Zero engine modifications.
 
 ### Blueprint V2 (Next Milestone)
 *   **Production Extraction Layer:** Replacing regex and fixtures with deterministic document AI.
@@ -266,7 +271,9 @@ Do not rely solely on historical chat discussions to determine the current state
 
 **Blueprint V1.1 Completion:** Confirmed Complete. The application successfully implements the Unified Document Upload workflow with user review and validation gates, preserving downstream business logic.
 
-**Current Stable Baseline:** Version `stable-v1.1` correctly implements all core requirements, including recent priorities and the Unified Upload enhancement.
+**Blueprint V1.1.1 Completion:** Confirmed Complete. The results page has been restructured into a full Exception Investigation Workspace: exception rail selector, document detail cards with mismatch field highlighting, per-exception explanation, financial impact, recommendation, timeline visualization, and collapsible processing snapshot. Zero engine modifications.
+
+**Current Stable Baseline:** Version `stable-v1.1.1` / commit `dc4e41d` is the current stable release. All milestones through Blueprint V1.1.1 are closed.
 
 **Current Maturity Level:** Prototype / Demonstration Grade. The architecture is sound and well-segregated, but data acquisition (Classification and Extraction) remains heavily heuristic and fixture-backed.
 
