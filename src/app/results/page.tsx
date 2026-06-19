@@ -1,12 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import type { MatchDocumentsResult, MatchStringFieldResult } from "@/lib/matcher";
+import type {
+  MatchDocumentsResult,
+} from "@/lib/matcher";
 import { useEffect, useState } from "react";
 import type { FinancialExposureResult } from "@/lib/financialExposure";
 import type { RiskAssessmentResult } from "@/lib/riskEngine";
 import type { ExplainabilityResult } from "@/lib/explainability";
 import type { ContentVerificationResult } from "@/lib/classifier";
+
+// ─────────────────────────────────────────────
+// Types (mirrors upload/page.tsx — AnalysisResult structure preserved)
+// ─────────────────────────────────────────────
+
+type ExtractedDoc = {
+  vendor: string;
+  documentNumber: string;
+  poNumber: string | null;
+  grnNumber: string | null;
+  invoiceNumber: string | null;
+  date: string;
+  normalizedDate: string | null;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+} | null;
 
 type AnalysisResult = {
   files: {
@@ -26,42 +45,9 @@ type AnalysisResult = {
     vendorInvoiceVerification: ContentVerificationResult;
   };
   extractedData: {
-    purchaseOrder: {
-      vendor: string;
-      documentNumber: string;
-      poNumber: string | null;
-      grnNumber: string | null;
-      invoiceNumber: string | null;
-      date: string;
-      normalizedDate: string | null;
-      quantity: number;
-      unitPrice: number;
-      amount: number;
-    } | null;
-    goodsReceiptNote: {
-      vendor: string;
-      documentNumber: string;
-      poNumber: string | null;
-      grnNumber: string | null;
-      invoiceNumber: string | null;
-      date: string;
-      normalizedDate: string | null;
-      quantity: number;
-      unitPrice: number;
-      amount: number;
-    } | null;
-    vendorInvoice: {
-      vendor: string;
-      documentNumber: string;
-      poNumber: string | null;
-      grnNumber: string | null;
-      invoiceNumber: string | null;
-      date: string;
-      normalizedDate: string | null;
-      quantity: number;
-      unitPrice: number;
-      amount: number;
-    } | null;
+    purchaseOrder: ExtractedDoc;
+    goodsReceiptNote: ExtractedDoc;
+    vendorInvoice: ExtractedDoc;
   };
   matchResult: MatchDocumentsResult;
   exceptions: {
@@ -75,163 +61,44 @@ type AnalysisResult = {
   explainability: ExplainabilityResult;
 };
 
-const analysisStorageKey = "auditIQAnalysis";
-
-function readAnalysisFromStorage() {
-  const storedAnalysis = sessionStorage.getItem(analysisStorageKey);
-
-  if (!storedAnalysis) {
-    return fallbackAnalysis;
-  }
-
-  try {
-    const parsedAnalysis = JSON.parse(storedAnalysis) as Partial<AnalysisResult>;
-
-    if (!parsedAnalysis.explainability) {
-      return fallbackAnalysis;
-    }
-
-    return parsedAnalysis as AnalysisResult;
-  } catch {
-    return fallbackAnalysis;
-  }
-}
+// ─────────────────────────────────────────────
+// Fallback
+// ─────────────────────────────────────────────
 
 const fallbackAnalysis: AnalysisResult = {
-  files: {
-    purchaseOrder: "PO-001.pdf",
-    goodsReceiptNote: "GRN-001.pdf",
-    vendorInvoice: "INV-001.pdf",
-  },
+  files: { purchaseOrder: "PO-001.pdf", goodsReceiptNote: "GRN-001.pdf", vendorInvoice: "INV-001.pdf" },
   classifications: {
-    purchaseOrder: "Purchase Order",
-    purchaseOrderConfidence: 95,
-    purchaseOrderVerification: {
-      verified: true,
-      contentType: "Purchase Order",
-      adjustedConfidence: 95,
-      conflict: false,
-    },
-    goodsReceiptNote: "Goods Receipt Note",
-    goodsReceiptNoteConfidence: 95,
-    goodsReceiptNoteVerification: {
-      verified: true,
-      contentType: "Goods Receipt Note",
-      adjustedConfidence: 95,
-      conflict: false,
-    },
-    vendorInvoice: "Vendor Invoice",
-    vendorInvoiceConfidence: 95,
-    vendorInvoiceVerification: {
-      verified: true,
-      contentType: "Vendor Invoice",
-      adjustedConfidence: 95,
-      conflict: false,
-    },
+    purchaseOrder: "Purchase Order", purchaseOrderConfidence: 95,
+    purchaseOrderVerification: { verified: true, contentType: "Purchase Order", adjustedConfidence: 95, conflict: false },
+    goodsReceiptNote: "Goods Receipt Note", goodsReceiptNoteConfidence: 95,
+    goodsReceiptNoteVerification: { verified: true, contentType: "Goods Receipt Note", adjustedConfidence: 95, conflict: false },
+    vendorInvoice: "Vendor Invoice", vendorInvoiceConfidence: 95,
+    vendorInvoiceVerification: { verified: true, contentType: "Vendor Invoice", adjustedConfidence: 95, conflict: false },
   },
   extractedData: {
-    purchaseOrder: {
-      vendor: "ABC Industries",
-      documentNumber: "PO-1001",
-      poNumber: "PO-1001",
-      grnNumber: null,
-      invoiceNumber: null,
-      date: "2026-06-12",
-      normalizedDate: "2026-06-12",
-      quantity: 100,
-      unitPrice: 500,
-      amount: 50000,
-    },
-    goodsReceiptNote: {
-      vendor: "ABC Industries",
-      documentNumber: "GRN-1001",
-      poNumber: "PO-1001",
-      grnNumber: "GRN-1001",
-      invoiceNumber: null,
-      date: "2026-06-12",
-      normalizedDate: "2026-06-12",
-      quantity: 95,
-      unitPrice: 500,
-      amount: 47500,
-    },
-    vendorInvoice: {
-      vendor: "ABC Industries",
-      documentNumber: "INV-1001",
-      poNumber: "PO-1001",
-      grnNumber: "GRN-1001",
-      invoiceNumber: "INV-1001",
-      date: "2026-06-12",
-      normalizedDate: "2026-06-12",
-      quantity: 100,
-      unitPrice: 620,
-      amount: 62000,
-    },
+    purchaseOrder: { vendor: "ABC Industries", documentNumber: "PO-1001", poNumber: "PO-1001", grnNumber: null, invoiceNumber: null, date: "2026-06-12", normalizedDate: "2026-06-12", quantity: 100, unitPrice: 500, amount: 50000 },
+    goodsReceiptNote: { vendor: "ABC Industries", documentNumber: "GRN-1001", poNumber: "PO-1001", grnNumber: "GRN-1001", invoiceNumber: null, date: "2026-06-14", normalizedDate: "2026-06-14", quantity: 95, unitPrice: 500, amount: 47500 },
+    vendorInvoice: { vendor: "ABC Industries", documentNumber: "INV-1001", poNumber: "PO-1001", grnNumber: "GRN-1001", invoiceNumber: "INV-1001", date: "2026-06-16", normalizedDate: "2026-06-16", quantity: 100, unitPrice: 620, amount: 62000 },
   },
   matchResult: {
-    quantityMatch: {
-      matched: false,
-      po: 100,
-      grn: 95,
-      invoice: 100,
-    },
-    priceMatch: {
-      matched: false,
-      po: 500,
-      grn: 500,
-      invoice: 620,
-    },
-    amountMatch: {
-      matched: false,
-      po: 50000,
-      grn: 47500,
-      invoice: 62000,
-    },
-    poNumberMatch: {
-      matched: true,
-      po: "PO-1001",
-      grn: "PO-1001",
-      invoice: "PO-1001",
-      normalizedPo: "PO1001",
-      normalizedGrn: "PO1001",
-      normalizedInvoice: "PO1001",
-    },
-    grnNumberMatch: {
-      matched: true,
-      po: null,
-      grn: "GRN-1001",
-      invoice: "GRN-1001",
-      normalizedPo: null,
-      normalizedGrn: "GRN1001",
-      normalizedInvoice: "GRN1001",
-    },
+    quantityMatch: { matched: false, po: 100, grn: 95, invoice: 100 },
+    priceMatch: { matched: false, po: 500, grn: 500, invoice: 620 },
+    amountMatch: { matched: false, po: 50000, grn: 47500, invoice: 62000 },
+    poNumberMatch: { matched: true, po: "PO-1001", grn: "PO-1001", invoice: "PO-1001", normalizedPo: "PO1001", normalizedGrn: "PO1001", normalizedInvoice: "PO1001" },
+    grnNumberMatch: { matched: true, po: null, grn: "GRN-1001", invoice: "GRN-1001", normalizedPo: null, normalizedGrn: "GRN1001", normalizedInvoice: "GRN1001" },
   },
   exceptions: [
-    {
-      type: "Quantity Mismatch",
-      severity: "High",
-    },
-    {
-      type: "Price Variance",
-      severity: "High",
-    },
+    { type: "Quantity Mismatch", severity: "High" },
+    { type: "Price Variance", severity: "High" },
   ],
   financialExposure: {
     totalExposure: 14500,
     breakdown: [
-      {
-        exception: "Quantity Mismatch",
-        exposure: 2500,
-      },
-      {
-        exception: "Price Variance",
-        exposure: 12000,
-      },
+      { exception: "Quantity Mismatch", exposure: 2500 },
+      { exception: "Price Variance", exposure: 12000 },
     ],
   },
-  risk: {
-    level: "Medium",
-    score: 40,
-  },
+  risk: { level: "Medium", score: 40 },
   recommendations: [
     "Review received quantity and reconcile with purchase order.",
     "Review invoice pricing and obtain approval for variance.",
@@ -251,164 +118,612 @@ const fallbackAnalysis: AnalysisResult = {
   },
 };
 
-export default function ResultsPage() {
-  const [analysis, setAnalysis] = useState<AnalysisResult>(fallbackAnalysis);
+const analysisStorageKey = "auditIQAnalysis";
 
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setAnalysis(readAnalysisFromStorage());
-    }, 0);
+function readAnalysisFromStorage(): AnalysisResult {
+  const stored = sessionStorage.getItem(analysisStorageKey);
+  if (!stored) return fallbackAnalysis;
+  try {
+    const parsed = JSON.parse(stored) as Partial<AnalysisResult>;
+    if (!parsed.explainability) return fallbackAnalysis;
+    return parsed as AnalysisResult;
+  } catch {
+    return fallbackAnalysis;
+  }
+}
 
-    return () => window.clearTimeout(timeoutId);
-  }, []);
+// ─────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────
 
-  const documentCount = Object.keys(analysis.files).length;
+function fmt(n: number) {
+  return `₹${n.toLocaleString("en-IN")}`;
+}
+
+const EXCEPTION_KEYWORDS: Record<string, string[]> = {
+  "Quantity Mismatch": ["Quantity Mismatch", "units between", "discrepancy of"],
+  "Price Variance": ["Price Variance", "unit price", "Invoice unit price"],
+  "Missing Invoice": ["Missing Invoice", "without an invoice"],
+  "Missing GRN": ["Missing GRN", "without proof of receipt"],
+  "Duplicate Invoice": ["Duplicate Invoice", "duplicate"],
+  "Timeline Deviation": ["Timeline Deviation", "date", "sequence"],
+};
+
+function findExplanationForException(
+  exceptionType: string,
+  explanations: string[]
+): string | null {
+  const keywords = EXCEPTION_KEYWORDS[exceptionType] ?? [];
+  return (
+    explanations.find((exp) =>
+      keywords.some((kw) => exp.toLowerCase().includes(kw.toLowerCase()))
+    ) ?? null
+  );
+}
+
+function findRecommendationForException(
+  exceptionType: string,
+  recommendations: string[],
+  explanations: string[]
+): { action: string; trigger: string } | null {
+  const triggerKeywordMap: Record<string, string> = {
+    "Quantity Mismatch": "Quantity Mismatch",
+    "Price Variance": "Price Variance",
+    "Missing Invoice": "Missing Invoice",
+    "Missing GRN": "Missing GRN",
+    "Duplicate Invoice": "Duplicate Invoice",
+  };
+  const triggerKw = triggerKeywordMap[exceptionType];
+
+  const triggerExplanation = triggerKw
+    ? explanations.find(
+        (exp) =>
+          exp.includes(triggerKw) &&
+          (exp.includes("generated because") || exp.includes("generated from"))
+      )
+    : null;
+
+  if (!triggerExplanation) return null;
+
+  const matchedRec = recommendations.find((rec) =>
+    triggerExplanation.startsWith(rec)
+  );
+
+  if (!matchedRec) return null;
+
+  const trigger = triggerExplanation
+    .replace(matchedRec, "")
+    .replace(/^\s*/, "")
+    .trim();
+
+  return { action: matchedRec, trigger };
+}
+
+function riskColor(level: string) {
+  if (level === "Critical") return "text-red-600";
+  if (level === "High") return "text-orange-500";
+  if (level === "Medium") return "text-amber-500";
+  return "text-green-600";
+}
+
+function riskBg(level: string) {
+  if (level === "Critical") return "bg-red-50 border-red-300";
+  if (level === "High") return "bg-orange-50 border-orange-300";
+  if (level === "Medium") return "bg-amber-50 border-amber-300";
+  return "bg-green-50 border-green-300";
+}
+
+// ─────────────────────────────────────────────
+// Sub-components
+// ─────────────────────────────────────────────
+
+function KpiCard({
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  accent?: string;
+}) {
+  return (
+    <div className="border rounded-lg p-4 bg-white shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">
+        {label}
+      </p>
+      <p className={`text-2xl font-bold ${accent ?? "text-gray-900"}`}>
+        {value}
+      </p>
+      {sub && <p className="text-sm text-gray-500 mt-0.5">{sub}</p>}
+    </div>
+  );
+}
+
+function DocumentCard({
+  label,
+  filename,
+  doc,
+  highlightQty,
+  highlightPrice,
+  highlightAmount,
+}: {
+  label: string;
+  filename: string;
+  doc: ExtractedDoc;
+  highlightQty: boolean;
+  highlightPrice: boolean;
+  highlightAmount: boolean;
+}) {
+  if (!doc) {
+    return (
+      <div className="border rounded-lg p-4 bg-gray-50 flex-1">
+        <p className="text-xs font-semibold uppercase text-gray-400 mb-1">
+          {label}
+        </p>
+        <p className="text-sm text-gray-400 italic">Not provided</p>
+      </div>
+    );
+  }
+
+  const field = (name: string, val: string | number | null, mismatch: boolean) => (
+    <div
+      className={`flex justify-between text-sm py-1 border-b border-gray-100 last:border-0 ${
+        mismatch ? "text-orange-600 font-semibold bg-orange-50 px-1 rounded" : "text-gray-700"
+      }`}
+    >
+      <span className="text-gray-500 text-xs">{name}</span>
+      <span>{val ?? "—"}</span>
+    </div>
+  );
 
   return (
-    <main className="min-h-screen p-8">
-      <h1 className="text-4xl font-bold mb-6">
-        Audit Results
-      </h1>
-
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="border rounded p-4">
-          <h2 className="font-semibold">
-            Documents Analyzed
-          </h2>
-          <p className="text-3xl">{documentCount}</p>
-        </div>
-
-        <div className="border rounded p-4">
-          <h2 className="font-semibold">
-            Exceptions Found
-          </h2>
-          <p className="text-3xl">{analysis.exceptions.length}</p>
-        </div>
-
-        <div className="border rounded p-4">
-          <h2 className="font-semibold">
-            Risk Level
-          </h2>
-          <p className="text-3xl">{analysis.risk.level}</p>
-          <p className="mt-2">Score: {analysis.risk.score}</p>
-        </div>
+    <div className="border rounded-lg p-4 bg-white shadow-sm flex-1">
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">
+        {label}
+      </p>
+      <p className="text-sm font-medium text-gray-700 mb-3 truncate" title={filename}>
+        {filename}
+      </p>
+      <div className="space-y-0.5">
+        {field("Vendor", doc.vendor, false)}
+        {field("Doc #", doc.documentNumber, false)}
+        {field("Date", doc.normalizedDate ?? doc.date, false)}
+        {field("Quantity", doc.quantity, highlightQty)}
+        {field("Unit Price", `₹${doc.unitPrice}`, highlightPrice)}
+        {field("Amount", fmt(doc.amount), highlightAmount)}
       </div>
+    </div>
+  );
+}
 
-      <div className="border rounded p-4 mb-8">
-        <h2 className="text-xl font-bold mb-4">
-          Processing Snapshot
-        </h2>
-
-        <p>PO: {analysis.files.purchaseOrder}</p>
-        <p>GRN: {analysis.files.goodsReceiptNote}</p>
-        <p>Invoice: {analysis.files.vendorInvoice}</p>
-        <p>PO Classification: {analysis.classifications.purchaseOrder} (Confidence: {analysis.classifications.purchaseOrderVerification.adjustedConfidence}%)</p>
-        {analysis.classifications.purchaseOrderVerification.conflict && (
-          <p>⚠ PO Classification Conflict: filename suggests {analysis.classifications.purchaseOrder}, content suggests {analysis.classifications.purchaseOrderVerification.contentType}</p>
-        )}
-        <p>GRN Classification: {analysis.classifications.goodsReceiptNote} (Confidence: {analysis.classifications.goodsReceiptNoteVerification.adjustedConfidence}%)</p>
-        {analysis.classifications.goodsReceiptNoteVerification.conflict && (
-          <p>⚠ GRN Classification Conflict: filename suggests {analysis.classifications.goodsReceiptNote}, content suggests {analysis.classifications.goodsReceiptNoteVerification.contentType}</p>
-        )}
-        <p>Invoice Classification: {analysis.classifications.vendorInvoice} (Confidence: {analysis.classifications.vendorInvoiceVerification.adjustedConfidence}%)</p>
-        {analysis.classifications.vendorInvoiceVerification.conflict && (
-          <p>⚠ Invoice Classification Conflict: filename suggests {analysis.classifications.vendorInvoice}, content suggests {analysis.classifications.vendorInvoiceVerification.contentType}</p>
-        )}
-        <p>Quantity Match: {analysis.matchResult.quantityMatch.matched ? "Yes" : "No"}</p>
-        <p>Price Match: {analysis.matchResult.priceMatch.matched ? "Yes" : "No"}</p>
-        <p>Amount Match: {analysis.matchResult.amountMatch.matched ? "Yes" : "No"}</p>
-        <p>PO Number Match: {analysis.matchResult.poNumberMatch.matched ? "Yes" : "No"}</p>
-        <p>GRN Number Match: {analysis.matchResult.grnNumberMatch.matched ? "Yes" : "No"}</p>
-        <p>Risk Score: {analysis.risk.score}</p>
-        <p>Risk Level: {analysis.risk.level}</p>
-      </div>
-
-      <div className="border rounded p-4 mb-8">
-        <h2 className="text-xl font-bold mb-4">
-          Financial Exposure
-        </h2>
-
-        <p>Total Exposure: ₹{analysis.financialExposure.totalExposure}</p>
-
-        <ul className="list-disc ml-6 space-y-2 mt-4">
-          {analysis.financialExposure.breakdown.map((item) => (
-            <li key={`${item.exception}-${item.exposure}`}>
-              {item.exception}: ₹{item.exposure}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="border rounded p-4 mb-8">
-        <h2 className="text-xl font-bold mb-4">
-          Explainability
-        </h2>
-
-        <p className="mb-4">{analysis.explainability.summary}</p>
-
-        <ul className="list-disc ml-6 space-y-2">
-          {analysis.explainability.explanations.map((explanation) => (
-            <li key={explanation}>{explanation}</li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="border rounded p-4 mb-8">
-        <h2 className="text-xl font-bold mb-4">
-          Matching Details
-        </h2>
-
-        <div className="space-y-2">
-          <p>
-            Quantity: PO {analysis.matchResult.quantityMatch.po}, GRN {analysis.matchResult.quantityMatch.grn}, Invoice {analysis.matchResult.quantityMatch.invoice}
-          </p>
-          <p>
-            Unit Price: PO {analysis.matchResult.priceMatch.po}, GRN {analysis.matchResult.priceMatch.grn}, Invoice {analysis.matchResult.priceMatch.invoice}
-          </p>
-          <p>
-            Amount: PO {analysis.matchResult.amountMatch.po}, GRN {analysis.matchResult.amountMatch.grn}, Invoice {analysis.matchResult.amountMatch.invoice}
-          </p>
-          <p>
-            PO Number: PO {analysis.matchResult.poNumberMatch.po ?? "null"} (normalized: {analysis.matchResult.poNumberMatch.normalizedPo ?? "null"}), GRN {analysis.matchResult.poNumberMatch.grn ?? "null"} (normalized: {analysis.matchResult.poNumberMatch.normalizedGrn ?? "null"}), Invoice {analysis.matchResult.poNumberMatch.invoice ?? "null"} (normalized: {analysis.matchResult.poNumberMatch.normalizedInvoice ?? "null"})
-          </p>
-          <p>
-            GRN Number: PO {analysis.matchResult.grnNumberMatch.po ?? "null"} (normalized: {analysis.matchResult.grnNumberMatch.normalizedPo ?? "null"}), GRN {analysis.matchResult.grnNumberMatch.grn ?? "null"} (normalized: {analysis.matchResult.grnNumberMatch.normalizedGrn ?? "null"}), Invoice {analysis.matchResult.grnNumberMatch.invoice ?? "null"} (normalized: {analysis.matchResult.grnNumberMatch.normalizedInvoice ?? "null"})
-          </p>
-        </div>
-      </div>
-
-      <div className="border rounded p-4 mb-8">
-        <h2 className="text-xl font-bold mb-4">
-          Exceptions
-        </h2>
-
-        <ul className="list-disc ml-6 space-y-2">
-          {analysis.exceptions.map((exception) => (
-            <li key={`${exception.type}-${exception.severity}`}>
-              {exception.type} ({exception.severity}){exception.message ? ` - ${exception.message}` : ""}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="border rounded p-4 mb-8">
-        <h2 className="text-xl font-bold mb-4">
-          Recommendations
-        </h2>
-
-        <ul className="list-disc ml-6 space-y-2">
-          {analysis.recommendations.map((recommendation) => (
-            <li key={recommendation}>{recommendation}</li>
-          ))}
-        </ul>
-      </div>
-
-      <Link
-        href="/"
-        className="px-4 py-2 border rounded"
+function TimelineNode({
+  label,
+  date,
+  warn,
+}: {
+  label: string;
+  date: string | null;
+  warn: boolean;
+}) {
+  return (
+    <div className="flex flex-col items-center text-center">
+      <div
+        className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 ${
+          warn
+            ? "bg-orange-100 border-orange-400 text-orange-700"
+            : date
+            ? "bg-green-100 border-green-400 text-green-700"
+            : "bg-gray-100 border-gray-300 text-gray-400"
+        }`}
       >
-        Back to Dashboard
-      </Link>
+        {warn ? "!" : "✓"}
+      </div>
+      <p className="text-xs font-semibold mt-1 text-gray-700">{label}</p>
+      <p className={`text-xs mt-0.5 ${warn ? "text-orange-600" : "text-gray-500"}`}>
+        {date ?? "Unavailable"}
+      </p>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Main Page
+// ─────────────────────────────────────────────
+
+export default function ResultsPage() {
+  const [analysis, setAnalysis] = useState<AnalysisResult>(fallbackAnalysis);
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [snapshotOpen, setSnapshotOpen] = useState(false);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      setAnalysis(readAnalysisFromStorage());
+      setSelectedIdx(0);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  const { exceptions, financialExposure, risk, recommendations, explainability, extractedData, matchResult, files, classifications } = analysis;
+  const selected = exceptions[selectedIdx] ?? null;
+  const docCount = Object.values(files).filter(Boolean).length;
+
+  // Financial exposure for selected exception
+  const selectedExposure =
+    selected
+      ? financialExposure.breakdown.find(
+          (b) => b.exception === selected.type
+        ) ?? null
+      : null;
+
+  // Explanation for selected exception
+  const selectedExplanation = selected
+    ? selected.message ??
+      findExplanationForException(
+        selected.type,
+        explainability.explanations
+      )
+    : null;
+
+  // Recommendation for selected exception
+  const selectedRec = selected
+    ? findRecommendationForException(
+        selected.type,
+        recommendations,
+        explainability.explanations
+      )
+    : null;
+
+  // Timeline deviation check
+  const isTimelineException = selected?.type === "Timeline Deviation";
+
+  return (
+    <main className="min-h-screen bg-gray-50 p-6">
+      {/* ── Audit Header ── */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">
+          Exception Investigation
+        </h1>
+        <p className="text-sm text-gray-500">{explainability.summary}</p>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <KpiCard
+          label="Financial Exposure"
+          value={fmt(financialExposure.totalExposure)}
+          accent={financialExposure.totalExposure > 0 ? "text-orange-600" : "text-green-600"}
+        />
+        <KpiCard
+          label="Exceptions Found"
+          value={String(exceptions.length)}
+          accent={exceptions.length > 0 ? "text-red-600" : "text-green-600"}
+        />
+        <KpiCard
+          label="Risk Level"
+          value={risk.level}
+          sub={`Score: ${risk.score}`}
+          accent={riskColor(risk.level)}
+        />
+        <KpiCard
+          label="Documents Analyzed"
+          value={String(docCount)}
+        />
+      </div>
+
+      {/* ── Investigation Workspace ── */}
+      {exceptions.length === 0 ? (
+        <div className="border rounded-lg bg-green-50 border-green-200 p-8 text-center">
+          <p className="text-green-700 font-semibold text-lg">
+            ✓ No exceptions detected
+          </p>
+          <p className="text-green-600 text-sm mt-1">
+            All three documents are in agreement. No further action required.
+          </p>
+        </div>
+      ) : (
+        <div className="flex gap-6 items-start">
+
+          {/* ── Exception Rail (Left) ── */}
+          <div className="w-64 shrink-0 space-y-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">
+              Exceptions
+            </h2>
+            {exceptions.map((ex, idx) => {
+              const expAmt = financialExposure.breakdown.find(
+                (b) => b.exception === ex.type
+              );
+              const isActive = idx === selectedIdx;
+              return (
+                <button
+                  key={`${ex.type}-${idx}`}
+                  type="button"
+                  onClick={() => setSelectedIdx(idx)}
+                  className={`w-full text-left rounded-lg border p-3 transition-all ${
+                    isActive
+                      ? "border-orange-400 bg-orange-50 shadow-sm"
+                      : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  <p className={`text-sm font-semibold ${isActive ? "text-orange-700" : "text-gray-800"}`}>
+                    {ex.type}
+                  </p>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-medium">
+                      {ex.severity}
+                    </span>
+                    <span className={`text-xs font-mono ${expAmt ? "text-orange-600 font-semibold" : "text-gray-400"}`}>
+                      {expAmt ? fmt(expAmt.exposure) : "—"}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ── Investigation Panel (Right) ── */}
+          <div className="flex-1 space-y-5 min-w-0">
+
+            {/* Selected exception title */}
+            {selected && (
+              <div className={`rounded-lg border px-5 py-3 ${riskBg(selected.severity)}`}>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Investigating
+                </p>
+                <p className="text-xl font-bold text-gray-900 mt-0.5">
+                  {selected.type}
+                </p>
+              </div>
+            )}
+
+            {/* 1. Document Details */}
+            <section>
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">
+                Document Details
+              </h2>
+              <div className="flex gap-3">
+                <DocumentCard
+                  label="Purchase Order"
+                  filename={files.purchaseOrder}
+                  doc={extractedData.purchaseOrder}
+                  highlightQty={!matchResult.quantityMatch.matched}
+                  highlightPrice={!matchResult.priceMatch.matched}
+                  highlightAmount={!matchResult.amountMatch.matched}
+                />
+                <DocumentCard
+                  label="Goods Receipt Note"
+                  filename={files.goodsReceiptNote}
+                  doc={extractedData.goodsReceiptNote}
+                  highlightQty={!matchResult.quantityMatch.matched}
+                  highlightPrice={!matchResult.priceMatch.matched}
+                  highlightAmount={!matchResult.amountMatch.matched}
+                />
+                <DocumentCard
+                  label="Vendor Invoice"
+                  filename={files.vendorInvoice}
+                  doc={extractedData.vendorInvoice}
+                  highlightQty={!matchResult.quantityMatch.matched}
+                  highlightPrice={!matchResult.priceMatch.matched}
+                  highlightAmount={!matchResult.amountMatch.matched}
+                />
+              </div>
+            </section>
+
+            {/* 2. Mismatch Explanation */}
+            <section className="bg-white border rounded-lg p-5">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+                Mismatch Explanation
+              </h2>
+              {selectedExplanation ? (
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  {selectedExplanation}
+                </p>
+              ) : (
+                <p className="text-sm text-gray-400 italic">
+                  No detailed explanation available for this exception type.
+                </p>
+              )}
+            </section>
+
+            {/* 3. Financial Impact */}
+            <section className="bg-white border rounded-lg p-5">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+                Financial Impact
+              </h2>
+              {selectedExposure ? (
+                <div>
+                  <p className="text-3xl font-bold text-orange-600">
+                    {fmt(selectedExposure.exposure)}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    of {fmt(financialExposure.totalExposure)} total exposure
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 italic">
+                  Financial exposure is not directly calculable for this exception type.
+                </p>
+              )}
+            </section>
+
+            {/* 4. Recommendation */}
+            <section className="bg-white border rounded-lg p-5">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+                Recommendation
+              </h2>
+              {selectedRec ? (
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {selectedRec.action}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    ↳ {selectedRec.trigger}
+                  </p>
+                </div>
+              ) : recommendations.length > 0 ? (
+                <ul className="space-y-1">
+                  {recommendations.map((rec) => (
+                    <li key={rec} className="text-sm text-gray-700">
+                      • {rec}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-400 italic">
+                  No recommendations available.
+                </p>
+              )}
+            </section>
+
+            {/* 5. Timeline */}
+            <section className="bg-white border rounded-lg p-5">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-4">
+                Document Timeline
+              </h2>
+              <div className="flex items-center gap-2">
+                <TimelineNode
+                  label="Purchase Order"
+                  date={extractedData.purchaseOrder?.normalizedDate ?? null}
+                  warn={isTimelineException}
+                />
+                <div className="flex-1 h-0.5 bg-gray-200 mt-2" />
+                <TimelineNode
+                  label="Goods Receipt Note"
+                  date={extractedData.goodsReceiptNote?.normalizedDate ?? null}
+                  warn={isTimelineException}
+                />
+                <div className="flex-1 h-0.5 bg-gray-200 mt-2" />
+                <TimelineNode
+                  label="Vendor Invoice"
+                  date={extractedData.vendorInvoice?.normalizedDate ?? null}
+                  warn={isTimelineException}
+                />
+              </div>
+              {isTimelineException && selected?.message && (
+                <p className="text-xs text-orange-600 mt-3 bg-orange-50 border border-orange-200 rounded p-2">
+                  ⚠ {selected.message}
+                </p>
+              )}
+            </section>
+
+            {/* 6. Supporting Documents */}
+            <section className="bg-white border rounded-lg p-5">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">
+                Supporting Documents
+              </h2>
+              <div className="space-y-2">
+                {[
+                  {
+                    label: "Purchase Order",
+                    filename: files.purchaseOrder,
+                    classType: classifications.purchaseOrder,
+                    confidence: classifications.purchaseOrderVerification.adjustedConfidence,
+                    conflict: classifications.purchaseOrderVerification.conflict,
+                    contentType: classifications.purchaseOrderVerification.contentType,
+                  },
+                  {
+                    label: "Goods Receipt Note",
+                    filename: files.goodsReceiptNote,
+                    classType: classifications.goodsReceiptNote,
+                    confidence: classifications.goodsReceiptNoteVerification.adjustedConfidence,
+                    conflict: classifications.goodsReceiptNoteVerification.conflict,
+                    contentType: classifications.goodsReceiptNoteVerification.contentType,
+                  },
+                  {
+                    label: "Vendor Invoice",
+                    filename: files.vendorInvoice,
+                    classType: classifications.vendorInvoice,
+                    confidence: classifications.vendorInvoiceVerification.adjustedConfidence,
+                    conflict: classifications.vendorInvoiceVerification.conflict,
+                    contentType: classifications.vendorInvoiceVerification.contentType,
+                  },
+                ].map((doc) => (
+                  <div
+                    key={doc.label}
+                    className={`flex items-start justify-between text-sm rounded p-2 ${
+                      doc.conflict
+                        ? "bg-yellow-50 border border-yellow-200"
+                        : "bg-gray-50"
+                    }`}
+                  >
+                    <div>
+                      <span className="font-medium text-gray-700">
+                        {doc.filename}
+                      </span>
+                      <span className="text-gray-400 ml-2">— {doc.classType}</span>
+                      {doc.conflict && (
+                        <p className="text-xs text-yellow-700 mt-0.5">
+                          ⚠ Filename suggests {doc.classType}, content suggests{" "}
+                          {doc.contentType}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-400 whitespace-nowrap ml-4">
+                      {doc.confidence}% confidence
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* 7. Processing Snapshot (collapsible) */}
+            <section className="bg-white border rounded-lg overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setSnapshotOpen((v) => !v)}
+                className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-gray-50 transition-colors"
+              >
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Processing Snapshot
+                </h2>
+                <span className="text-gray-400 text-sm">
+                  {snapshotOpen ? "▲ collapse" : "▼ expand"}
+                </span>
+              </button>
+
+              {snapshotOpen && (
+                <div className="px-5 pb-5 space-y-1 border-t border-gray-100">
+                  {[
+                    ["Quantity", matchResult.quantityMatch.matched, `PO: ${matchResult.quantityMatch.po ?? "—"} / GRN: ${matchResult.quantityMatch.grn ?? "—"} / Invoice: ${matchResult.quantityMatch.invoice ?? "—"}`],
+                    ["Unit Price", matchResult.priceMatch.matched, `PO: ${matchResult.priceMatch.po ?? "—"} / GRN: ${matchResult.priceMatch.grn ?? "—"} / Invoice: ${matchResult.priceMatch.invoice ?? "—"}`],
+                    ["Amount", matchResult.amountMatch.matched, `PO: ${matchResult.amountMatch.po ?? "—"} / GRN: ${matchResult.amountMatch.grn ?? "—"} / Invoice: ${matchResult.amountMatch.invoice ?? "—"}`],
+                    ["PO Number", matchResult.poNumberMatch.matched, `${matchResult.poNumberMatch.normalizedPo ?? "—"} / ${matchResult.poNumberMatch.normalizedGrn ?? "—"} / ${matchResult.poNumberMatch.normalizedInvoice ?? "—"}`],
+                    ["GRN Number", matchResult.grnNumberMatch.matched, `${matchResult.grnNumberMatch.normalizedPo ?? "—"} / ${matchResult.grnNumberMatch.normalizedGrn ?? "—"} / ${matchResult.grnNumberMatch.normalizedInvoice ?? "—"}`],
+                  ].map(([fieldName, matched, detail]) => (
+                    <div
+                      key={String(fieldName)}
+                      className="flex items-start justify-between text-xs py-1.5 border-b border-gray-100 last:border-0"
+                    >
+                      <span className="text-gray-500 w-24 shrink-0">{String(fieldName)}</span>
+                      <span className={`font-medium mx-4 ${matched ? "text-green-600" : "text-red-500"}`}>
+                        {matched ? "Match" : "Mismatch"}
+                      </span>
+                      <span className="text-gray-400 text-right">{String(detail)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+          </div>
+        </div>
+      )}
+
+      {/* ── Footer ── */}
+      <div className="mt-8 flex gap-4">
+        <Link
+          href="/"
+          className="px-4 py-2 text-sm border rounded text-gray-600 hover:bg-gray-100 transition-colors"
+        >
+          ← Back to Dashboard
+        </Link>
+        <Link
+          href="/upload"
+          className="px-4 py-2 text-sm border rounded text-gray-600 hover:bg-gray-100 transition-colors"
+        >
+          New Audit
+        </Link>
+      </div>
     </main>
   );
 }
