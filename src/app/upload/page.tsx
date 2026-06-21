@@ -5,7 +5,7 @@ import {
   verifyClassificationByContent,
   type ContentVerificationResult,
 } from "@/lib/classifier";
-import { extractDocumentData } from "@/lib/extractor";
+import { extractDocumentData, extractionProvenance, type ExtractorMetadata } from "@/lib/extractor";
 import {
   calculateFinancialExposure,
   type FinancialExposureResult,
@@ -25,6 +25,9 @@ import {
   type RecommendationInput,
 } from "@/lib/recommendationEngine";
 import { readPdfText } from "@/lib/pdfTextReader";
+import { calculateExtractionConfidence, type DocumentConfidence } from "@/lib/extractionConfidence";
+import { calculateRootCauses, type RootCauseResult } from "@/lib/rootCauseEngine";
+import { calculateExceptionRisks, type ExceptionRiskScore } from "@/lib/exceptionRisk";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -56,6 +59,18 @@ type AnalysisResult = {
   risk: RiskAssessmentResult;
   recommendations: string[];
   explainability: ExplainabilityResult;
+  extractionConfidence?: {
+    purchaseOrder?: DocumentConfidence;
+    goodsReceiptNote?: DocumentConfidence;
+    vendorInvoice?: DocumentConfidence;
+  };
+  extractionProvenance?: {
+    purchaseOrder?: ExtractorMetadata;
+    goodsReceiptNote?: ExtractorMetadata;
+    vendorInvoice?: ExtractorMetadata;
+  };
+  rootCauses?: RootCauseResult;
+  exceptionRisks?: ExceptionRiskScore[];
 };
 
 const analysisStorageKey = "auditIQAnalysis";
@@ -180,6 +195,15 @@ export default function UploadPage() {
       vendorInvoiceClassification.type,
       vendorInvoiceText
     );
+
+    const purchaseOrderConfidencePayload = calculateExtractionConfidence(purchaseOrderData);
+    const goodsReceiptNoteConfidencePayload = calculateExtractionConfidence(goodsReceiptNoteData);
+    const vendorInvoiceConfidencePayload = calculateExtractionConfidence(vendorInvoiceData);
+
+    const poProvenance = purchaseOrderData ? extractionProvenance.get(purchaseOrderData) : undefined;
+    const grnProvenance = goodsReceiptNoteData ? extractionProvenance.get(goodsReceiptNoteData) : undefined;
+    const invProvenance = vendorInvoiceData ? extractionProvenance.get(vendorInvoiceData) : undefined;
+
     const matchResult = matchDocuments({
       purchaseOrder: purchaseOrderData,
       goodsReceiptNote: goodsReceiptNoteData,
@@ -254,6 +278,14 @@ export default function UploadPage() {
       },
     });
 
+    const rootCauses = calculateRootCauses(exceptions, matchResult, {
+      purchaseOrder: poProvenance,
+      goodsReceiptNote: grnProvenance,
+      vendorInvoice: invProvenance,
+    });
+
+    const exceptionRisks = calculateExceptionRisks(exceptions, financialExposure);
+
     const analysisResult: AnalysisResult = {
       files: {
         purchaseOrder: poFile.name,
@@ -282,6 +314,18 @@ export default function UploadPage() {
       risk,
       recommendations,
       explainability,
+      extractionConfidence: {
+        purchaseOrder: purchaseOrderConfidencePayload,
+        goodsReceiptNote: goodsReceiptNoteConfidencePayload,
+        vendorInvoice: vendorInvoiceConfidencePayload,
+      },
+      extractionProvenance: {
+        purchaseOrder: poProvenance,
+        goodsReceiptNote: grnProvenance,
+        vendorInvoice: invProvenance,
+      },
+      rootCauses,
+      exceptionRisks,
     };
 
     sessionStorage.setItem(analysisStorageKey, JSON.stringify(analysisResult));

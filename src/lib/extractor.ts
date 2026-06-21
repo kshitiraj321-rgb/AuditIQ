@@ -13,6 +13,25 @@ type ExtractedDocumentData = {
   totalAmount: number;
 } | null;
 
+export type FieldSource = "extracted" | "fallback" | "missing";
+
+export type ExtractorMetadata = {
+  vendor: FieldSource;
+  vendorName: FieldSource;
+  documentNumber: FieldSource;
+  poNumber: FieldSource;
+  grnNumber: FieldSource;
+  invoiceNumber: FieldSource;
+  date: FieldSource;
+  normalizedDate: FieldSource;
+  quantity: FieldSource;
+  unitPrice: FieldSource;
+  amount: FieldSource;
+  totalAmount: FieldSource;
+};
+
+export const extractionProvenance = new WeakMap<NonNullable<ExtractedDocumentData>, ExtractorMetadata>();
+
 const fixtureData = {
   "Purchase Order": {
     vendor: "ABC Industries",
@@ -415,28 +434,48 @@ export function extractDocumentData(
     identifiers.grnNumber ??
     identifiers.invoiceNumber ??
     fixture.documentNumber;
-  const vendorName = identifiers.vendorName ?? fixture.vendor;
-  const date = identifiers.date ?? fixture.date;
-  const normalizedDate = identifiers.normalizedDate ?? normalizeDate(fixture.date);
-  const quantity = extractedValues.quantity ?? fixture.quantity;
-  const unitPrice = extractedValues.unitPrice ?? fixture.unitPrice;
-  const amount = extractedValues.amount ?? fixture.amount;
-  const totalAmount = identifiers.totalAmount ?? amount;
+  const documentNumberSource: FieldSource =
+    (identifiers.documentNumber ?? identifiers.poNumber ?? identifiers.grnNumber ?? identifiers.invoiceNumber)
+      ? "extracted" : (fixture.documentNumber ? "fallback" : "missing");
 
-  return {
+  const vendorName = identifiers.vendorName ?? fixture.vendor;
+  const vendorNameSource: FieldSource = identifiers.vendorName ? "extracted" : (fixture.vendor ? "fallback" : "missing");
+
+  const date = identifiers.date ?? fixture.date;
+  const dateSource: FieldSource = identifiers.date ? "extracted" : (fixture.date ? "fallback" : "missing");
+
+  const normalizedDate = identifiers.normalizedDate ?? normalizeDate(fixture.date);
+  const normalizedDateSource: FieldSource = identifiers.normalizedDate ? "extracted" : (normalizeDate(fixture.date) ? "fallback" : "missing");
+
+  const quantity = extractedValues.quantity ?? fixture.quantity;
+  const quantitySource: FieldSource = extractedValues.quantity !== null ? "extracted" : (fixture.quantity !== null ? "fallback" : "missing");
+
+  const unitPrice = extractedValues.unitPrice ?? fixture.unitPrice;
+  const unitPriceSource: FieldSource = extractedValues.unitPrice !== null ? "extracted" : (fixture.unitPrice !== null ? "fallback" : "missing");
+
+  const amount = extractedValues.amount ?? fixture.amount;
+  const amountSource: FieldSource = extractedValues.amount !== null ? "extracted" : (fixture.amount !== null ? "fallback" : "missing");
+
+  const totalAmount = identifiers.totalAmount ?? amount;
+  const totalAmountSource: FieldSource = identifiers.totalAmount !== null ? "extracted" : amountSource;
+
+  const poNumberValue = identifiers.poNumber ?? (documentType === "Purchase Order" ? fixture.documentNumber : null);
+  const poNumberSource: FieldSource = identifiers.poNumber ? "extracted" : ((documentType === "Purchase Order" && fixture.documentNumber) ? "fallback" : "missing");
+
+  const grnNumberValue = identifiers.grnNumber ?? (documentType === "Goods Receipt Note" ? fixture.documentNumber : null);
+  const grnNumberSource: FieldSource = identifiers.grnNumber ? "extracted" : ((documentType === "Goods Receipt Note" && fixture.documentNumber) ? "fallback" : "missing");
+
+  const invoiceNumberValue = identifiers.invoiceNumber ?? (documentType === "Vendor Invoice" ? fixture.documentNumber : null);
+  const invoiceNumberSource: FieldSource = identifiers.invoiceNumber ? "extracted" : ((documentType === "Vendor Invoice" && fixture.documentNumber) ? "fallback" : "missing");
+
+  const result: NonNullable<ExtractedDocumentData> = {
     ...fixture,
     vendor: vendorName,
     vendorName,
     documentNumber,
-    poNumber:
-      identifiers.poNumber ??
-      (documentType === "Purchase Order" ? fixture.documentNumber : null),
-    grnNumber:
-      identifiers.grnNumber ??
-      (documentType === "Goods Receipt Note" ? fixture.documentNumber : null),
-    invoiceNumber:
-      identifiers.invoiceNumber ??
-      (documentType === "Vendor Invoice" ? fixture.documentNumber : null),
+    poNumber: poNumberValue,
+    grnNumber: grnNumberValue,
+    invoiceNumber: invoiceNumberValue,
     date,
     normalizedDate,
     quantity,
@@ -444,4 +483,21 @@ export function extractDocumentData(
     amount,
     totalAmount,
   };
+
+  extractionProvenance.set(result, {
+    vendor: vendorNameSource,
+    vendorName: vendorNameSource,
+    documentNumber: documentNumberSource,
+    poNumber: poNumberSource,
+    grnNumber: grnNumberSource,
+    invoiceNumber: invoiceNumberSource,
+    date: dateSource,
+    normalizedDate: normalizedDateSource,
+    quantity: quantitySource,
+    unitPrice: unitPriceSource,
+    amount: amountSource,
+    totalAmount: totalAmountSource,
+  });
+
+  return result;
 }

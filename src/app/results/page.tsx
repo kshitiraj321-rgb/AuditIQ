@@ -9,6 +9,9 @@ import type { FinancialExposureResult } from "@/lib/financialExposure";
 import type { RiskAssessmentResult } from "@/lib/riskEngine";
 import type { ExplainabilityResult } from "@/lib/explainability";
 import type { ContentVerificationResult } from "@/lib/classifier";
+import type { DocumentConfidence } from "@/lib/extractionConfidence";
+import type { ExtractorMetadata } from "@/lib/extractor";
+import { InvestigationAssistant } from "@/components/InvestigationAssistant";
 
 // ─────────────────────────────────────────────
 // Types (mirrors upload/page.tsx — AnalysisResult structure preserved)
@@ -59,6 +62,24 @@ type AnalysisResult = {
   risk: RiskAssessmentResult;
   recommendations: string[];
   explainability: ExplainabilityResult;
+  extractionConfidence?: {
+    purchaseOrder?: DocumentConfidence;
+    goodsReceiptNote?: DocumentConfidence;
+    vendorInvoice?: DocumentConfidence;
+  };
+  extractionProvenance?: {
+    purchaseOrder?: ExtractorMetadata;
+    goodsReceiptNote?: ExtractorMetadata;
+    vendorInvoice?: ExtractorMetadata;
+  };
+  rootCauses?: {
+    exceptionType: string;
+    rootCause: string;
+    category: "System Failure" | "Business Mismatch" | "Administrative Error";
+    confidence: "Proven" | "Inferred";
+    evidence: string[];
+  }[];
+  exceptionRisks?: { type: string; score: number }[];
 };
 
 // ─────────────────────────────────────────────
@@ -248,6 +269,8 @@ function DocumentCard({
   highlightQty,
   highlightPrice,
   highlightAmount,
+  confidence,
+  provenance,
 }: {
   label: string;
   filename: string;
@@ -255,6 +278,8 @@ function DocumentCard({
   highlightQty: boolean;
   highlightPrice: boolean;
   highlightAmount: boolean;
+  confidence?: DocumentConfidence;
+  provenance?: ExtractorMetadata;
 }) {
   if (!doc) {
     return (
@@ -267,32 +292,44 @@ function DocumentCard({
     );
   }
 
-  const field = (name: string, val: string | number | null, mismatch: boolean) => (
-    <div
-      className={`flex justify-between text-sm py-1 border-b border-gray-100 last:border-0 ${
-        mismatch ? "text-orange-600 font-semibold bg-orange-50 px-1 rounded" : "text-gray-700"
-      }`}
-    >
-      <span className="text-gray-500 text-xs">{name}</span>
-      <span>{val ?? "—"}</span>
-    </div>
-  );
+  const field = (name: string, val: string | number | null, mismatch: boolean, fieldKey?: keyof ExtractorMetadata) => {
+    const prov = fieldKey && provenance ? provenance[fieldKey] : undefined;
+    const isWarning = prov === "fallback" || prov === "missing";
+    return (
+      <div
+        className={`flex justify-between text-sm py-1 border-b border-gray-100 last:border-0 ${
+          mismatch ? "text-orange-600 font-semibold bg-orange-50 px-1 rounded" : isWarning ? "text-orange-600 font-semibold bg-orange-50 px-1 rounded" : "text-gray-700"
+        }`}
+      >
+        <span className="text-gray-500 text-xs flex items-center gap-1">
+          {name}
+          {isWarning && <span title={`Source: ${prov}`}>⚠</span>}
+        </span>
+        <span>{val ?? "—"}</span>
+      </div>
+    );
+  };
 
   return (
     <div className="border rounded-lg p-4 bg-white shadow-sm flex-1">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1 flex items-center">
         {label}
+        {confidence && (
+          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-800 normal-case tracking-normal">
+            Confidence: {Math.round(confidence.overallScore * 100)}%
+          </span>
+        )}
       </p>
       <p className="text-sm font-medium text-gray-700 mb-3 truncate" title={filename}>
         {filename}
       </p>
       <div className="space-y-0.5">
-        {field("Vendor", doc.vendor, false)}
-        {field("Doc #", doc.documentNumber, false)}
-        {field("Date", doc.normalizedDate ?? doc.date, false)}
-        {field("Quantity", doc.quantity, highlightQty)}
-        {field("Unit Price", `₹${doc.unitPrice}`, highlightPrice)}
-        {field("Amount", fmt(doc.amount), highlightAmount)}
+        {field("Vendor", doc.vendor, false, "vendor")}
+        {field("Doc #", doc.documentNumber, false, "documentNumber")}
+        {field("Date", doc.normalizedDate ?? doc.date, false, "normalizedDate")}
+        {field("Quantity", doc.quantity, highlightQty, "quantity")}
+        {field("Unit Price", `₹${doc.unitPrice}`, highlightPrice, "unitPrice")}
+        {field("Amount", fmt(doc.amount), highlightAmount, "amount")}
       </div>
     </div>
   );
@@ -336,6 +373,7 @@ export default function ResultsPage() {
   const [analysis, setAnalysis] = useState<AnalysisResult>(fallbackAnalysis);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [snapshotOpen, setSnapshotOpen] = useState(false);
+  const [transparencyOpen, setTransparencyOpen] = useState(false);
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -345,9 +383,14 @@ export default function ResultsPage() {
     return () => window.clearTimeout(id);
   }, []);
 
-  const { exceptions, financialExposure, risk, recommendations, explainability, extractedData, matchResult, files, classifications } = analysis;
+  const { exceptions, financialExposure, risk, recommendations, explainability, extractedData, matchResult, files, classifications, extractionConfidence, extractionProvenance, rootCauses, exceptionRisks } = analysis;
   const selected = exceptions[selectedIdx] ?? null;
   const docCount = Object.values(files).filter(Boolean).length;
+
+  const selectedRootCause =
+    selected && rootCauses
+      ? rootCauses.find((rc) => rc.exceptionType === selected.type)
+      : null;
 
   // Financial exposure for selected exception
   const selectedExposure =
@@ -378,6 +421,10 @@ export default function ResultsPage() {
   // Timeline deviation check
   const isTimelineException = selected?.type === "Timeline Deviation";
 
+  const hasProvenanceWarnings = Object.values(extractionProvenance || {}).some(
+    (prov) => prov && Object.values(prov).some((val) => val === "fallback" || val === "missing")
+  );
+
   return (
     <main className="min-h-screen bg-gray-50 p-6">
       {/* ── Audit Header ── */}
@@ -386,6 +433,12 @@ export default function ResultsPage() {
           Exception Investigation
         </h1>
         <p className="text-sm text-gray-500">{explainability.summary}</p>
+        {hasProvenanceWarnings && (
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-md text-sm flex items-start gap-2">
+            <span>ℹ️</span>
+            <span>Some values were populated using fallback logic or could not be extracted. Review <strong>Extraction Transparency</strong> for details.</span>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -470,9 +523,16 @@ export default function ResultsPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                   Investigating
                 </p>
-                <p className="text-xl font-bold text-gray-900 mt-0.5">
-                  {selected.type}
-                </p>
+                <div className="flex justify-between items-center mt-0.5">
+                  <p className="text-xl font-bold text-gray-900">
+                    {selected.type}
+                  </p>
+                  {exceptionRisks && (
+                    <span className="text-sm font-bold px-2 py-1 bg-white bg-opacity-50 rounded text-gray-900 border border-gray-300">
+                      Risk Score: {exceptionRisks.find(r => r.type === selected.type)?.score ?? "N/A"}/100
+                    </span>
+                  )}
+                </div>
               </div>
             )}
 
@@ -489,6 +549,8 @@ export default function ResultsPage() {
                   highlightQty={!matchResult.quantityMatch.matched}
                   highlightPrice={!matchResult.priceMatch.matched}
                   highlightAmount={!matchResult.amountMatch.matched}
+                  confidence={extractionConfidence?.purchaseOrder}
+                  provenance={extractionProvenance?.purchaseOrder}
                 />
                 <DocumentCard
                   label="Goods Receipt Note"
@@ -497,6 +559,8 @@ export default function ResultsPage() {
                   highlightQty={!matchResult.quantityMatch.matched}
                   highlightPrice={!matchResult.priceMatch.matched}
                   highlightAmount={!matchResult.amountMatch.matched}
+                  confidence={extractionConfidence?.goodsReceiptNote}
+                  provenance={extractionProvenance?.goodsReceiptNote}
                 />
                 <DocumentCard
                   label="Vendor Invoice"
@@ -505,9 +569,45 @@ export default function ResultsPage() {
                   highlightQty={!matchResult.quantityMatch.matched}
                   highlightPrice={!matchResult.priceMatch.matched}
                   highlightAmount={!matchResult.amountMatch.matched}
+                  confidence={extractionConfidence?.vendorInvoice}
+                  provenance={extractionProvenance?.vendorInvoice}
                 />
               </div>
             </section>
+
+            {/* Root Cause Diagnosis */}
+            {selectedRootCause && (
+              <section className="bg-white border rounded-lg p-5 border-blue-200 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+                    Root Cause Diagnosis
+                  </h2>
+                  <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded ${
+                    selectedRootCause.confidence === "Proven" 
+                      ? "bg-green-100 text-green-700 border border-green-200" 
+                      : "bg-blue-100 text-blue-700 border border-blue-200"
+                  }`}>
+                    {selectedRootCause.confidence}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-gray-900">
+                    {selectedRootCause.rootCause}
+                  </p>
+                  <p className="text-sm font-medium text-gray-500 mt-0.5">
+                    Category: {selectedRootCause.category}
+                  </p>
+                  <div className="mt-3 bg-gray-50 p-3 rounded text-sm text-gray-700 border border-gray-100">
+                    <p className="font-semibold text-xs text-gray-400 mb-1">EVIDENCE</p>
+                    <ul className="list-disc pl-4 space-y-1">
+                      {selectedRootCause.evidence.map((ev, i) => (
+                        <li key={i}>{ev}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </section>
+            )}
 
             {/* 2. Mismatch Explanation */}
             <section className="bg-white border rounded-lg p-5">
@@ -620,6 +720,7 @@ export default function ResultsPage() {
                     confidence: classifications.purchaseOrderVerification.adjustedConfidence,
                     conflict: classifications.purchaseOrderVerification.conflict,
                     contentType: classifications.purchaseOrderVerification.contentType,
+                    extConf: extractionConfidence?.purchaseOrder,
                   },
                   {
                     label: "Goods Receipt Note",
@@ -628,6 +729,7 @@ export default function ResultsPage() {
                     confidence: classifications.goodsReceiptNoteVerification.adjustedConfidence,
                     conflict: classifications.goodsReceiptNoteVerification.conflict,
                     contentType: classifications.goodsReceiptNoteVerification.contentType,
+                    extConf: extractionConfidence?.goodsReceiptNote,
                   },
                   {
                     label: "Vendor Invoice",
@@ -636,6 +738,7 @@ export default function ResultsPage() {
                     confidence: classifications.vendorInvoiceVerification.adjustedConfidence,
                     conflict: classifications.vendorInvoiceVerification.conflict,
                     contentType: classifications.vendorInvoiceVerification.contentType,
+                    extConf: extractionConfidence?.vendorInvoice,
                   },
                 ].map((doc) => (
                   <div
@@ -658,9 +761,16 @@ export default function ResultsPage() {
                         </p>
                       )}
                     </div>
-                    <span className="text-xs text-gray-400 whitespace-nowrap ml-4">
-                      {doc.confidence}% confidence
-                    </span>
+                    <div className="text-right">
+                      <p className="text-xs text-gray-400 whitespace-nowrap ml-4">
+                        Class: {doc.confidence}%
+                      </p>
+                      {doc.extConf && (
+                        <p className="text-xs text-gray-400 whitespace-nowrap ml-4 mt-0.5">
+                          Extr: {Math.round(doc.extConf.overallScore * 100)}%
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -705,6 +815,67 @@ export default function ResultsPage() {
               )}
             </section>
 
+            {/* 8. Extraction Transparency (collapsible) */}
+            <section className="bg-white border rounded-lg overflow-hidden mt-4">
+              <button
+                type="button"
+                onClick={() => setTransparencyOpen((v) => !v)}
+                className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-gray-50 transition-colors"
+              >
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  8. Extraction Transparency
+                </h2>
+                <span className="text-gray-400 text-sm">
+                  {transparencyOpen ? "▲ collapse" : "▼ expand"}
+                </span>
+              </button>
+
+              {transparencyOpen && (
+                <div className="overflow-x-auto border-t border-gray-100 text-sm">
+                  <table className="w-full text-left">
+                    <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                      <tr>
+                        <th className="px-5 py-3 font-medium border-b border-gray-200">Field</th>
+                        <th className="px-5 py-3 font-medium border-b border-gray-200 border-l">Purchase Order</th>
+                        <th className="px-5 py-3 font-medium border-b border-gray-200 border-l">GRN</th>
+                        <th className="px-5 py-3 font-medium border-b border-gray-200 border-l">Invoice</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 text-gray-700">
+                      {[
+                        "vendor",
+                        "vendorName",
+                        "documentNumber",
+                        "poNumber",
+                        "grnNumber",
+                        "invoiceNumber",
+                        "date",
+                        "normalizedDate",
+                        "quantity",
+                        "unitPrice",
+                        "amount",
+                        "totalAmount",
+                      ].map((f) => {
+                        const po = extractionProvenance?.purchaseOrder?.[f as keyof ExtractorMetadata] || "—";
+                        const grn = extractionProvenance?.goodsReceiptNote?.[f as keyof ExtractorMetadata] || "—";
+                        const inv = extractionProvenance?.vendorInvoice?.[f as keyof ExtractorMetadata] || "—";
+                        return (
+                          <tr key={f} className="hover:bg-gray-50">
+                            <td className="px-5 py-2 font-mono text-xs font-medium text-gray-500">{f}</td>
+                            <td className={`px-5 py-2 border-l border-gray-100 ${po === "fallback" || po === "missing" ? "text-orange-600 bg-orange-50/50" : ""}`}>{po}</td>
+                            <td className={`px-5 py-2 border-l border-gray-100 ${grn === "fallback" || grn === "missing" ? "text-orange-600 bg-orange-50/50" : ""}`}>{grn}</td>
+                            <td className={`px-5 py-2 border-l border-gray-100 ${inv === "fallback" || inv === "missing" ? "text-orange-600 bg-orange-50/50" : ""}`}>{inv}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            {/* 9. Investigation Assistant */}
+            <InvestigationAssistant analysisResult={analysis} selectedIdx={selectedIdx} />
           </div>
         </div>
       )}
