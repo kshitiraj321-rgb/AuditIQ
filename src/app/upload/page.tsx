@@ -5,7 +5,7 @@ import {
   verifyClassificationByContent,
   type ContentVerificationResult,
 } from "@/lib/classifier";
-import { extractDocumentData, extractionProvenance, type ExtractorMetadata } from "@/lib/extractor";
+import { extractDocumentData, extractionProvenance, type ExtractorMetadata, type AIExtractionFields } from "@/lib/extractor";
 import {
   calculateFinancialExposure,
   type FinancialExposureResult,
@@ -28,6 +28,7 @@ import { readPdfText } from "@/lib/pdfTextReader";
 import { calculateExtractionConfidence, type DocumentConfidence } from "@/lib/extractionConfidence";
 import { calculateRootCauses, type RootCauseResult } from "@/lib/rootCauseEngine";
 import { calculateExceptionRisks, type ExceptionRiskScore } from "@/lib/exceptionRisk";
+import { prioritizeExceptions, type PrioritizedException } from "@/lib/prioritizationEngine";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -69,8 +70,14 @@ type AnalysisResult = {
     goodsReceiptNote?: ExtractorMetadata;
     vendorInvoice?: ExtractorMetadata;
   };
+  extractionErrors?: {
+    purchaseOrder?: string | null;
+    goodsReceiptNote?: string | null;
+    vendorInvoice?: string | null;
+  };
   rootCauses?: RootCauseResult;
   exceptionRisks?: ExceptionRiskScore[];
+  prioritizedQueue?: PrioritizedException[];
 };
 
 const analysisStorageKey = "auditIQAnalysis";
@@ -86,6 +93,7 @@ export default function UploadPage() {
   };
 
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [assignedFiles, setAssignedFiles] = useState<{
     purchaseOrder: string | null;
     goodsReceiptNote: string | null;
@@ -138,71 +146,88 @@ export default function UploadPage() {
   const selectedGRN = stagedFiles.find(f => f.id === assignedFiles.goodsReceiptNote)?.file || null;
   const selectedInvoice = stagedFiles.find(f => f.id === assignedFiles.vendorInvoice)?.file || null;
 
-  const allAssigned = Boolean(assignedFiles.purchaseOrder && assignedFiles.goodsReceiptNote && assignedFiles.vendorInvoice);
+  const hasAtLeastOne = Boolean(assignedFiles.purchaseOrder || assignedFiles.goodsReceiptNote || assignedFiles.vendorInvoice);
   const assignedIds = [assignedFiles.purchaseOrder, assignedFiles.goodsReceiptNote, assignedFiles.vendorInvoice].filter(Boolean);
   const hasDuplicates = new Set(assignedIds).size !== assignedIds.length;
-  const isValid = allAssigned && !hasDuplicates;
+  const isValid = hasAtLeastOne && !hasDuplicates;
 
   async function handleAnalyzeClick() {
     if (!isValid) {
       setValidationMessage(
-        "Please assign exactly one unique document to each slot."
+        "Please assign at least one document, with no duplicates across slots."
       );
       return;
     }
 
-    const poFile = selectedPO!;
-    const grnFile = selectedGRN!;
-    const invoiceFile = selectedInvoice!;
+    setIsAnalyzing(true);
+    try {
+      const poFile = selectedPO;
+    const grnFile = selectedGRN;
+    const invoiceFile = selectedInvoice;
 
-    const purchaseOrderClassification = classifyDocument(poFile.name);
-    const goodsReceiptNoteClassification = classifyDocument(grnFile.name);
-    const vendorInvoiceClassification = classifyDocument(invoiceFile.name);
+    const purchaseOrderClassification = poFile ? { ...classifyDocument(poFile.name), type: "Purchase Order" } : { type: "Purchase Order", confidence: 0 };
+    const goodsReceiptNoteClassification = grnFile ? { ...classifyDocument(grnFile.name), type: "Goods Receipt Note" } : { type: "Goods Receipt Note", confidence: 0 };
+    const vendorInvoiceClassification = invoiceFile ? { ...classifyDocument(invoiceFile.name), type: "Vendor Invoice" } : { type: "Vendor Invoice", confidence: 0 };
 
     const [purchaseOrderText, goodsReceiptNoteText, vendorInvoiceText] =
       await Promise.all([
-        readPdfText(poFile),
-        readPdfText(grnFile),
-        readPdfText(invoiceFile),
+        poFile ? readPdfText(poFile) : Promise.resolve(""),
+        grnFile ? readPdfText(grnFile) : Promise.resolve(""),
+        invoiceFile ? readPdfText(invoiceFile) : Promise.resolve(""),
       ]);
 
     // Priority 5D — Content-Based Classification Verification
-    const purchaseOrderVerification = verifyClassificationByContent(
+    const purchaseOrderVerification = poFile ? verifyClassificationByContent(
       purchaseOrderClassification.type,
       purchaseOrderText,
       purchaseOrderClassification.confidence
-    );
-    const goodsReceiptNoteVerification = verifyClassificationByContent(
+    ) : { verified: false, contentType: "Purchase Order", adjustedConfidence: 0, conflict: false };
+    const goodsReceiptNoteVerification = grnFile ? verifyClassificationByContent(
       goodsReceiptNoteClassification.type,
       goodsReceiptNoteText,
       goodsReceiptNoteClassification.confidence
-    );
-    const vendorInvoiceVerification = verifyClassificationByContent(
+    ) : { verified: false, contentType: "Goods Receipt Note", adjustedConfidence: 0, conflict: false };
+    const vendorInvoiceVerification = invoiceFile ? verifyClassificationByContent(
       vendorInvoiceClassification.type,
       vendorInvoiceText,
       vendorInvoiceClassification.confidence
-    );
+    ) : { verified: false, contentType: "Vendor Invoice", adjustedConfidence: 0, conflict: false };
 
-    const purchaseOrderData = extractDocumentData(
-      purchaseOrderClassification.type,
-      purchaseOrderText
-    );
-    const goodsReceiptNoteData = extractDocumentData(
-      goodsReceiptNoteClassification.type,
-      goodsReceiptNoteText
-    );
-    const vendorInvoiceData = extractDocumentData(
-      vendorInvoiceClassification.type,
-      vendorInvoiceText
-    );
+    // Fetch AI extractions in parallel — page owns all async/network operations
+    const [poAiResult, grnAiResult, invAiResult] = await Promise.all([
+      poFile ? fetch('/api/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentType: purchaseOrderClassification.type, documentText: purchaseOrderText }),
+      }).then(r => r.ok ? r.json() : { success: false, error: "API returned non-200 status" }).catch(e => ({ success: false, error: e.message || "Network Error" })) : Promise.resolve({ success: false, error: "No file" }),
+      grnFile ? fetch('/api/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentType: goodsReceiptNoteClassification.type, documentText: goodsReceiptNoteText }),
+      }).then(r => r.ok ? r.json() : { success: false, error: "API returned non-200 status" }).catch(e => ({ success: false, error: e.message || "Network Error" })) : Promise.resolve({ success: false, error: "No file" }),
+      invoiceFile ? fetch('/api/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentType: vendorInvoiceClassification.type, documentText: vendorInvoiceText }),
+      }).then(r => r.ok ? r.json() : { success: false, error: "API returned non-200 status" }).catch(e => ({ success: false, error: e.message || "Network Error" })) : Promise.resolve({ success: false, error: "No file" }),
+    ]);
+
+    const poAiData: AIExtractionFields | null = poAiResult?.success ? poAiResult.data : null;
+    const grnAiData: AIExtractionFields | null = grnAiResult?.success ? grnAiResult.data : null;
+    const invAiData: AIExtractionFields | null = invAiResult?.success ? invAiResult.data : null;
+
+    // extractDocumentData is now a pure synchronous mapping function
+    const purchaseOrderData = poFile ? extractDocumentData(purchaseOrderClassification.type, purchaseOrderText, poAiData) : null;
+    const goodsReceiptNoteData = grnFile ? extractDocumentData(goodsReceiptNoteClassification.type, goodsReceiptNoteText, grnAiData) : null;
+    const vendorInvoiceData = invoiceFile ? extractDocumentData(vendorInvoiceClassification.type, vendorInvoiceText, invAiData) : null;
 
     const purchaseOrderConfidencePayload = calculateExtractionConfidence(purchaseOrderData);
     const goodsReceiptNoteConfidencePayload = calculateExtractionConfidence(goodsReceiptNoteData);
     const vendorInvoiceConfidencePayload = calculateExtractionConfidence(vendorInvoiceData);
 
-    const poProvenance = purchaseOrderData ? extractionProvenance.get(purchaseOrderData) : undefined;
-    const grnProvenance = goodsReceiptNoteData ? extractionProvenance.get(goodsReceiptNoteData) : undefined;
-    const invProvenance = vendorInvoiceData ? extractionProvenance.get(vendorInvoiceData) : undefined;
+    const poProvenance = purchaseOrderData && extractionProvenance ? extractionProvenance.get(purchaseOrderData) : undefined;
+    const grnProvenance = goodsReceiptNoteData && extractionProvenance ? extractionProvenance.get(goodsReceiptNoteData) : undefined;
+    const invProvenance = vendorInvoiceData && extractionProvenance ? extractionProvenance.get(vendorInvoiceData) : undefined;
 
     const matchResult = matchDocuments({
       purchaseOrder: purchaseOrderData,
@@ -215,10 +240,13 @@ export default function UploadPage() {
       const stored = localStorage.getItem("auditiq_audited_invoices");
       if (stored) {
         existingInvoices = JSON.parse(stored);
+        console.log("Loaded existing invoices from localStorage: " + JSON.stringify(existingInvoices));
       }
     } catch (e) {
       console.error("Failed to load invoice history", e);
     }
+    
+    console.log("vendorInvoiceData for Duplicate Invoice check: " + JSON.stringify(vendorInvoiceData));
 
     const exceptions = detectExceptions({
       purchaseOrder: purchaseOrderData,
@@ -286,11 +314,13 @@ export default function UploadPage() {
 
     const exceptionRisks = calculateExceptionRisks(exceptions, financialExposure);
 
+    const prioritizedQueue = prioritizeExceptions(exceptions, exceptionRisks, vendorInvoiceData);
+
     const analysisResult: AnalysisResult = {
       files: {
-        purchaseOrder: poFile.name,
-        goodsReceiptNote: grnFile.name,
-        vendorInvoice: invoiceFile.name,
+        purchaseOrder: poFile?.name || "",
+        goodsReceiptNote: grnFile?.name || "",
+        vendorInvoice: invoiceFile?.name || "",
       },
       classifications: {
         purchaseOrder: purchaseOrderClassification.type,
@@ -324,12 +354,86 @@ export default function UploadPage() {
         goodsReceiptNote: grnProvenance,
         vendorInvoice: invProvenance,
       },
+      extractionErrors: {
+        purchaseOrder: poAiResult?.success ? null : poAiResult?.error || "Unknown extraction failure",
+        goodsReceiptNote: grnAiResult?.success ? null : grnAiResult?.error || "Unknown extraction failure",
+        vendorInvoice: invAiResult?.success ? null : invAiResult?.error || "Unknown extraction failure",
+      },
       rootCauses,
       exceptionRisks,
+      prioritizedQueue,
     };
+
+    // --- TELEMETRY DISPATCH ---
+    try {
+      const getCounts = (prov: ExtractorMetadata | undefined) => {
+        if (!prov) return { extracted: 0, fallback: 0, missing: 0 };
+        const vals = Object.values(prov);
+        return {
+          extracted: vals.filter(v => v === 'extracted').length,
+          fallback: vals.filter(v => v === 'fallback').length,
+          missing: vals.filter(v => v === 'missing').length,
+        };
+      };
+
+      const getCriticalFallbacks = (prov: ExtractorMetadata | undefined) => {
+        if (!prov) return 0;
+        let count = 0;
+        if (prov.quantity === 'fallback') count++;
+        if (prov.unitPrice === 'fallback') count++;
+        if (prov.amount === 'fallback') count++;
+        return count;
+      };
+
+      const telemetryPayload = {
+        timestamp: new Date().toISOString(),
+        auditId: crypto.randomUUID(),
+        documents: [
+          {
+            documentType: analysisResult.classifications.purchaseOrder,
+            confidenceScore: analysisResult.extractionConfidence?.purchaseOrder?.overallScore || 0,
+            fallbackCount: getCounts(analysisResult.extractionProvenance?.purchaseOrder).fallback,
+            missingCount: getCounts(analysisResult.extractionProvenance?.purchaseOrder).missing,
+            criticalFallbackCount: getCriticalFallbacks(analysisResult.extractionProvenance?.purchaseOrder),
+            apiFailure: !!analysisResult.extractionErrors?.purchaseOrder
+          },
+          {
+            documentType: analysisResult.classifications.goodsReceiptNote,
+            confidenceScore: analysisResult.extractionConfidence?.goodsReceiptNote?.overallScore || 0,
+            fallbackCount: getCounts(analysisResult.extractionProvenance?.goodsReceiptNote).fallback,
+            missingCount: getCounts(analysisResult.extractionProvenance?.goodsReceiptNote).missing,
+            criticalFallbackCount: getCriticalFallbacks(analysisResult.extractionProvenance?.goodsReceiptNote),
+            apiFailure: !!analysisResult.extractionErrors?.goodsReceiptNote
+          },
+          {
+            documentType: analysisResult.classifications.vendorInvoice,
+            confidenceScore: analysisResult.extractionConfidence?.vendorInvoice?.overallScore || 0,
+            fallbackCount: getCounts(analysisResult.extractionProvenance?.vendorInvoice).fallback,
+            missingCount: getCounts(analysisResult.extractionProvenance?.vendorInvoice).missing,
+            criticalFallbackCount: getCriticalFallbacks(analysisResult.extractionProvenance?.vendorInvoice),
+            apiFailure: !!analysisResult.extractionErrors?.vendorInvoice
+          }
+        ]
+      };
+
+      // Fire-and-forget dispatch. Does not await. Does not throw.
+      fetch('/api/telemetry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(telemetryPayload)
+      }).catch(e => {
+        console.warn("Telemetry dispatch failed", e);
+      });
+    } catch (e) {
+      console.warn("Telemetry builder failed", e);
+    }
+    // --- END TELEMETRY ---
 
     sessionStorage.setItem(analysisStorageKey, JSON.stringify(analysisResult));
     router.push("/results");
+    } finally {
+      setIsAnalyzing(false);
+    }
   }
 
   const renderSlot = (label: string, slotKey: keyof typeof assignedFiles) => {
@@ -399,14 +503,14 @@ export default function UploadPage() {
               onClick={() => {
                 void handleAnalyzeClick();
               }}
-              disabled={!isValid}
+              disabled={!isValid || isAnalyzing}
               className={`px-6 py-3 border rounded text-lg font-semibold ${
-                isValid
+                isValid && !isAnalyzing
                   ? "bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
                   : "bg-gray-100 text-gray-400 cursor-not-allowed"
               }`}
             >
-              Run Audit
+              {isAnalyzing ? "Analyzing..." : "Run Audit"}
             </button>
           </div>
         </div>

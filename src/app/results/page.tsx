@@ -15,6 +15,7 @@ import { InvestigationAssistant } from "@/components/InvestigationAssistant";
 
 // ─────────────────────────────────────────────
 // Types (mirrors upload/page.tsx — AnalysisResult structure preserved)
+import type { PrioritizedException } from "@/lib/prioritizationEngine";
 // ─────────────────────────────────────────────
 
 type ExtractedDoc = {
@@ -72,6 +73,11 @@ type AnalysisResult = {
     goodsReceiptNote?: ExtractorMetadata;
     vendorInvoice?: ExtractorMetadata;
   };
+  extractionErrors?: {
+    purchaseOrder?: string | null;
+    goodsReceiptNote?: string | null;
+    vendorInvoice?: string | null;
+  };
   rootCauses?: {
     exceptionType: string;
     rootCause: string;
@@ -80,6 +86,7 @@ type AnalysisResult = {
     evidence: string[];
   }[];
   exceptionRisks?: { type: string; score: number }[];
+  prioritizedQueue?: PrioritizedException[];
 };
 
 // ─────────────────────────────────────────────
@@ -124,6 +131,24 @@ const fallbackAnalysis: AnalysisResult = {
     "Review received quantity and reconcile with purchase order.",
     "Review invoice pricing and obtain approval for variance.",
     "Hold payment until discrepancy is resolved.",
+  ],
+  prioritizedQueue: [
+    {
+      exception: { type: "Price Variance", severity: "High" },
+      baseRiskScore: 90,
+      complianceScore: 40,
+      vendorScore: 30,
+      transactionScore: 20,
+      finalPriorityScore: 180,
+    },
+    {
+      exception: { type: "Quantity Mismatch", severity: "High" },
+      baseRiskScore: 75,
+      complianceScore: 40,
+      vendorScore: 30,
+      transactionScore: 20,
+      finalPriorityScore: 165,
+    }
   ],
   explainability: {
     summary: "2 exceptions detected with ₹14500 exposure.",
@@ -294,6 +319,7 @@ function DocumentCard({
 
   const field = (name: string, val: string | number | null, mismatch: boolean, fieldKey?: keyof ExtractorMetadata) => {
     const prov = fieldKey && provenance ? provenance[fieldKey] : undefined;
+    const fieldConf = fieldKey && confidence?.fields ? confidence.fields[fieldKey] : undefined;
     const isWarning = prov === "fallback" || prov === "missing";
     return (
       <div
@@ -305,7 +331,17 @@ function DocumentCard({
           {name}
           {isWarning && <span title={`Source: ${prov}`}>⚠</span>}
         </span>
-        <span>{val ?? "—"}</span>
+        <div className="flex items-center gap-2">
+          <span>{val ?? "—"}</span>
+          {fieldConf && (
+            <span className={`text-[10px] px-1 rounded font-medium ${
+              fieldConf.score >= 0.7 ? "bg-gray-100 text-gray-500" :
+              "bg-orange-100 text-orange-700"
+            }`}>
+              {Math.round(fieldConf.score * 100)}%
+            </span>
+          )}
+        </div>
       </div>
     );
   };
@@ -315,8 +351,13 @@ function DocumentCard({
       <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1 flex items-center">
         {label}
         {confidence && (
-          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-800 normal-case tracking-normal">
+          <span className={`ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium normal-case tracking-normal ${
+            confidence.overallScore >= 0.7 
+              ? "bg-gray-100 text-gray-800" 
+              : "bg-orange-100 text-orange-800 border border-orange-200"
+          }`}>
             Confidence: {Math.round(confidence.overallScore * 100)}%
+            {confidence.overallScore < 0.7 && " ⚠"}
           </span>
         )}
       </p>
@@ -383,9 +424,13 @@ export default function ResultsPage() {
     return () => window.clearTimeout(id);
   }, []);
 
-  const { exceptions, financialExposure, risk, recommendations, explainability, extractedData, matchResult, files, classifications, extractionConfidence, extractionProvenance, rootCauses, exceptionRisks } = analysis;
-  const selected = exceptions[selectedIdx] ?? null;
+  const { exceptions, financialExposure, risk, recommendations, explainability, extractedData, matchResult, files, classifications, extractionConfidence, extractionProvenance, rootCauses, exceptionRisks, extractionErrors, prioritizedQueue } = analysis;
+  
+  const displayExceptions = prioritizedQueue && prioritizedQueue.length > 0 ? prioritizedQueue.map(p => p.exception) : exceptions;
+  const selected = displayExceptions[selectedIdx] ?? null;
   const docCount = Object.values(files).filter(Boolean).length;
+
+  const hasAiFailures = extractionErrors && Object.values(extractionErrors).some((err) => err !== null);
 
   const selectedRootCause =
     selected && rootCauses
@@ -433,7 +478,19 @@ export default function ResultsPage() {
           Exception Investigation
         </h1>
         <p className="text-sm text-gray-500">{explainability.summary}</p>
-        {hasProvenanceWarnings && (
+        
+        {hasAiFailures && (
+          <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-900 rounded-md shadow-sm">
+            <h3 className="font-bold text-red-800 flex items-center gap-2">
+              <span>⚠</span> AI Extraction Failure Detected
+            </h3>
+            <p className="text-sm mt-1">
+              AuditIQ successfully completed analysis using the Fixture Safety Layer. Some extraction results were generated using fallback data due to AI extraction failure. Review Extraction Transparency for details.
+            </p>
+          </div>
+        )}
+        
+        {hasProvenanceWarnings && !hasAiFailures && (
           <div className="mt-3 p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-md text-sm flex items-start gap-2">
             <span>ℹ️</span>
             <span>Some values were populated using fallback logic or could not be extracted. Review <strong>Extraction Transparency</strong> for details.</span>
@@ -482,7 +539,7 @@ export default function ResultsPage() {
             <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">
               Exceptions
             </h2>
-            {exceptions.map((ex, idx) => {
+            {displayExceptions.map((ex, idx) => {
               const expAmt = financialExposure.breakdown.find(
                 (b) => b.exception === ex.type
               );
@@ -505,6 +562,11 @@ export default function ResultsPage() {
                     <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-medium">
                       {ex.severity}
                     </span>
+                    {prioritizedQueue && prioritizedQueue[idx] && (
+                      <span className="text-xs bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded font-medium">
+                        Score: {prioritizedQueue[idx].finalPriorityScore}
+                      </span>
+                    )}
                     <span className={`text-xs font-mono ${expAmt ? "text-orange-600 font-semibold" : "text-gray-400"}`}>
                       {expAmt ? fmt(expAmt.exposure) : "—"}
                     </span>
@@ -528,9 +590,16 @@ export default function ResultsPage() {
                     {selected.type}
                   </p>
                   {exceptionRisks && (
-                    <span className="text-sm font-bold px-2 py-1 bg-white bg-opacity-50 rounded text-gray-900 border border-gray-300">
-                      Risk Score: {exceptionRisks.find(r => r.type === selected.type)?.score ?? "N/A"}/100
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      {prioritizedQueue && prioritizedQueue[selectedIdx] && (
+                        <span className="text-sm font-bold px-2 py-1 bg-orange-100 text-orange-800 border border-orange-200 rounded">
+                          Priority Score: {prioritizedQueue[selectedIdx].finalPriorityScore}
+                        </span>
+                      )}
+                      <span className="text-xs font-medium px-2 py-0.5 bg-white bg-opacity-50 rounded text-gray-700 border border-gray-300">
+                        Risk Base: {exceptionRisks.find(r => r.type === selected.type)?.score ?? "N/A"}/100
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -831,8 +900,34 @@ export default function ResultsPage() {
               </button>
 
               {transparencyOpen && (
-                <div className="overflow-x-auto border-t border-gray-100 text-sm">
-                  <table className="w-full text-left">
+                <div className="p-5 border-t border-gray-100 text-sm space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[
+                      { key: 'purchaseOrder', label: 'Purchase Order', error: extractionErrors?.purchaseOrder, conf: extractionConfidence?.purchaseOrder, prov: extractionProvenance?.purchaseOrder },
+                      { key: 'goodsReceiptNote', label: 'Goods Receipt Note', error: extractionErrors?.goodsReceiptNote, conf: extractionConfidence?.goodsReceiptNote, prov: extractionProvenance?.goodsReceiptNote },
+                      { key: 'vendorInvoice', label: 'Vendor Invoice', error: extractionErrors?.vendorInvoice, conf: extractionConfidence?.vendorInvoice, prov: extractionProvenance?.vendorInvoice },
+                    ].map(doc => {
+                      const extractedCount = doc.prov ? Object.values(doc.prov).filter(v => v === 'extracted').length : 0;
+                      const fallbackCount = doc.prov ? Object.values(doc.prov).filter(v => v === 'fallback').length : 0;
+                      const missingCount = doc.prov ? Object.values(doc.prov).filter(v => v === 'missing').length : 0;
+                      return (
+                        <div key={doc.key} className={`border rounded p-4 ${doc.error ? 'bg-red-50 border-red-200' : 'bg-gray-50'}`}>
+                          <h3 className="font-semibold mb-2 text-gray-800">{doc.label}</h3>
+                          <div className="space-y-1 text-xs">
+                            <p><span className="text-gray-500">Confidence:</span> {doc.conf ? `${Math.round(doc.conf.overallScore * 100)}%` : 'N/A'} {doc.conf && (doc.conf.overallScore >= 0.7 ? <span className="text-green-600">(High)</span> : <span className="text-orange-600 font-bold">(Low)</span>)}</p>
+                            {doc.error && <p className="text-red-600 mt-1 mb-2 font-medium">Error: {doc.error}</p>}
+                            <div className="mt-2 grid grid-cols-3 gap-2 text-center pt-2 border-t border-gray-200">
+                              <div><p className="font-bold text-gray-700">{extractedCount}</p><p className="text-gray-400">Extracted</p></div>
+                              <div><p className={`font-bold ${fallbackCount > 0 ? 'text-orange-600' : 'text-gray-700'}`}>{fallbackCount}</p><p className="text-gray-400">Fallback</p></div>
+                              <div><p className={`font-bold ${missingCount > 0 ? 'text-red-600' : 'text-gray-700'}`}>{missingCount}</p><p className="text-gray-400">Missing</p></div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="overflow-x-auto border rounded-lg">
+                    <table className="w-full text-left">
                     <thead className="bg-gray-50 text-xs uppercase text-gray-500">
                       <tr>
                         <th className="px-5 py-3 font-medium border-b border-gray-200">Field</th>
@@ -870,6 +965,7 @@ export default function ResultsPage() {
                       })}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               )}
             </section>

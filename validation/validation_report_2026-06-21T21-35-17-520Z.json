@@ -1,0 +1,316 @@
+{
+  "metadata": {
+    "timestamp": "2026-06-21T21:35:17.520Z",
+    "frameworkVersion": "2.4.5a",
+    "extractorSource": "extractDocumentData() — src/lib/extractor.ts",
+    "groundTruthSource": "test-data/procurement_dataset.json",
+    "documentsEvaluated": 15,
+    "fieldsEvaluated": 180,
+    "testMode": "synthetic-ground-truth",
+    "testModeNote": "aiData constructed from procurement_dataset.json. Tests normalization pipeline and provenance tracking deterministically without API calls."
+  },
+  "fieldAccuracy": {
+    "summary": {
+      "overallFieldAccuracy": 100,
+      "totalFieldsTested": 180,
+      "passed": 180,
+      "failed": 0
+    },
+    "byField": [
+      {
+        "field": "vendor",
+        "tested": 15,
+        "passed": 15,
+        "exact": 15,
+        "fuzzy": 0,
+        "failed": 0,
+        "accuracy": 100
+      },
+      {
+        "field": "vendorName",
+        "tested": 15,
+        "passed": 15,
+        "exact": 15,
+        "fuzzy": 0,
+        "failed": 0,
+        "accuracy": 100
+      },
+      {
+        "field": "documentNumber",
+        "tested": 15,
+        "passed": 15,
+        "exact": 15,
+        "fuzzy": 0,
+        "failed": 0,
+        "accuracy": 100
+      },
+      {
+        "field": "poNumber",
+        "tested": 15,
+        "passed": 15,
+        "exact": 15,
+        "fuzzy": 0,
+        "failed": 0,
+        "accuracy": 100
+      },
+      {
+        "field": "grnNumber",
+        "tested": 15,
+        "passed": 15,
+        "exact": 15,
+        "fuzzy": 0,
+        "failed": 0,
+        "accuracy": 100
+      },
+      {
+        "field": "invoiceNumber",
+        "tested": 15,
+        "passed": 15,
+        "exact": 15,
+        "fuzzy": 0,
+        "failed": 0,
+        "accuracy": 100
+      },
+      {
+        "field": "date",
+        "tested": 15,
+        "passed": 15,
+        "exact": 15,
+        "fuzzy": 0,
+        "failed": 0,
+        "accuracy": 100
+      },
+      {
+        "field": "normalizedDate",
+        "tested": 15,
+        "passed": 15,
+        "exact": 15,
+        "fuzzy": 0,
+        "failed": 0,
+        "accuracy": 100
+      },
+      {
+        "field": "quantity",
+        "tested": 15,
+        "passed": 15,
+        "exact": 0,
+        "fuzzy": 0,
+        "failed": 0,
+        "accuracy": 100
+      },
+      {
+        "field": "unitPrice",
+        "tested": 15,
+        "passed": 15,
+        "exact": 0,
+        "fuzzy": 0,
+        "failed": 0,
+        "accuracy": 100
+      },
+      {
+        "field": "amount",
+        "tested": 15,
+        "passed": 15,
+        "exact": 0,
+        "fuzzy": 0,
+        "failed": 0,
+        "accuracy": 100
+      },
+      {
+        "field": "totalAmount",
+        "tested": 15,
+        "passed": 15,
+        "exact": 0,
+        "fuzzy": 0,
+        "failed": 0,
+        "accuracy": 100
+      }
+    ]
+  },
+  "documentAccuracy": {
+    "byDocumentType": {
+      "Purchase Order": {
+        "documentsCount": 5,
+        "averageAccuracy": 100
+      },
+      "Goods Receipt Note": {
+        "documentsCount": 4,
+        "averageAccuracy": 100
+      },
+      "Vendor Invoice": {
+        "documentsCount": 6,
+        "averageAccuracy": 100
+      }
+    },
+    "overallDocumentAccuracy": 100
+  },
+  "scenarioAccuracy": {
+    "scenarios": [
+      {
+        "scenario": "Perfect Match",
+        "expectedExceptions": [],
+        "detectedExceptions": [],
+        "correct": true,
+        "falseNegatives": 0,
+        "falsePositives": 0,
+        "divergences": []
+      },
+      {
+        "scenario": "Quantity Mismatch",
+        "expectedExceptions": [
+          "Quantity Mismatch"
+        ],
+        "detectedExceptions": [
+          "Quantity Mismatch"
+        ],
+        "correct": true,
+        "falseNegatives": 0,
+        "falsePositives": 0,
+        "divergences": []
+      },
+      {
+        "scenario": "Price Variance",
+        "expectedExceptions": [
+          "Price Variance"
+        ],
+        "detectedExceptions": [
+          "Price Variance"
+        ],
+        "correct": true,
+        "falseNegatives": 0,
+        "falsePositives": 0,
+        "divergences": []
+      },
+      {
+        "scenario": "Missing GRN",
+        "expectedExceptions": [
+          "Missing GRN"
+        ],
+        "detectedExceptions": [
+          "Missing GRN"
+        ],
+        "correct": true,
+        "falseNegatives": 0,
+        "falsePositives": 0,
+        "divergences": []
+      },
+      {
+        "scenario": "Duplicate Invoice",
+        "expectedExceptions": [
+          "Duplicate Invoice"
+        ],
+        "detectedExceptions": [
+          "Duplicate Invoice"
+        ],
+        "correct": true,
+        "falseNegatives": 0,
+        "falsePositives": 0,
+        "divergences": []
+      }
+    ],
+    "overallScenarioAccuracy": 100,
+    "scenariosCorrect": 5,
+    "scenariosTested": 5,
+    "falseNegatives": 0,
+    "falsePositives": 0
+  },
+  "pipelineImpact": {
+    "assessments": [
+      {
+        "scenario": "Perfect Match",
+        "matchingResult": {
+          "quantityMatch": true,
+          "priceMatch": true,
+          "amountMatch": true
+        },
+        "exceptionsCorrect": true,
+        "riskLevelCorrect": true,
+        "riskScore": 0,
+        "riskLevel": "Low",
+        "financialExposure": 0,
+        "pipelineImpact": "NONE"
+      },
+      {
+        "scenario": "Quantity Mismatch",
+        "matchingResult": {
+          "quantityMatch": false,
+          "priceMatch": true,
+          "amountMatch": false
+        },
+        "exceptionsCorrect": true,
+        "riskLevelCorrect": true,
+        "riskScore": 10,
+        "riskLevel": "Low",
+        "financialExposure": 0,
+        "pipelineImpact": "NONE"
+      },
+      {
+        "scenario": "Price Variance",
+        "matchingResult": {
+          "quantityMatch": true,
+          "priceMatch": false,
+          "amountMatch": false
+        },
+        "exceptionsCorrect": true,
+        "riskLevelCorrect": true,
+        "riskScore": 10,
+        "riskLevel": "Low",
+        "financialExposure": 2000,
+        "pipelineImpact": "NONE"
+      },
+      {
+        "scenario": "Missing GRN",
+        "matchingResult": {
+          "quantityMatch": false,
+          "priceMatch": false,
+          "amountMatch": false
+        },
+        "exceptionsCorrect": true,
+        "riskLevelCorrect": true,
+        "riskScore": 40,
+        "riskLevel": "Medium",
+        "financialExposure": 247800,
+        "pipelineImpact": "NONE"
+      },
+      {
+        "scenario": "Duplicate Invoice",
+        "matchingResult": {
+          "quantityMatch": true,
+          "priceMatch": true,
+          "amountMatch": true
+        },
+        "exceptionsCorrect": true,
+        "riskLevelCorrect": true,
+        "riskScore": 40,
+        "riskLevel": "Medium",
+        "financialExposure": 218300,
+        "pipelineImpact": "NONE"
+      }
+    ],
+    "criticalDivergences": 0,
+    "lowDivergences": 0,
+    "pipelineReliabilityScore": 100
+  },
+  "confidenceAssessment": {
+    "averageConfidenceScore": 0.9889,
+    "documentsAtHighConfidence": 15,
+    "documentsAtLowConfidence": 0,
+    "provenanceDistribution": {
+      "extracted": 178,
+      "fallback": 0,
+      "missing": 2
+    }
+  },
+  "regressionFindings": {
+    "baselineSource": "C:\\Users\\kshit\\Documents\\Projects\\auditiq\\production_extractor_accuracy_report.json",
+    "baselineFieldAccuracy": 100,
+    "baselineNote": "60 fields (2026-06-16T23:17:43.093Z)",
+    "currentFieldAccuracy": 100,
+    "delta": 0,
+    "regressionThreshold": 2,
+    "regressionDetected": false,
+    "regressionDetails": []
+  },
+  "overallReliabilityScore": 100,
+  "verdict": "PASS"
+}
