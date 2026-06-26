@@ -24,6 +24,7 @@ These milestones are fully validated, tagged, frozen, and supported by repositor
 - Phase 2.2: Engine scaling.
 - Phase 2.5: Investigation Workspace Compliance Remediation.
 - Phase 2.6: Exception Prioritization Engine (Section 12.6).
+- Phase 2.7: Enhanced Dashboard (Section 12.7).
 
 ## 2. In Progress
 These milestones are currently under active development or awaiting final freeze validation.
