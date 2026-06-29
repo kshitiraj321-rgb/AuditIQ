@@ -13,7 +13,7 @@ export type ExtractedDocumentData = {
   totalAmount: number;
 } | null;
 
-export type FieldSource = "extracted" | "fallback" | "missing";
+export type FieldSource = "extracted" | "fallback" | "missing" | "derived";
 
 export type ExtractorMetadata = {
   vendor: FieldSource;
@@ -160,7 +160,7 @@ export function extractDocumentData(
       source = "missing";
     }
 
-    return { value: finalValue, source };
+    return { value: finalValue, source } as { value: AIExtractionFields[K]; source: FieldSource };
   };
 
   const vendorRes = getField("vendor", fixture.vendor);
@@ -179,9 +179,22 @@ export function extractDocumentData(
   const normDateRes = getField("normalizedDate", normalizeDate(fixture.date));
 
   const qtyRes = getField("quantity", fixture.quantity);
-  const priceRes = getField("unitPrice", fixture.unitPrice);
+  let priceRes = getField("unitPrice", fixture.unitPrice);
   const amountRes = getField("amount", fixture.amount);
   const totalRes = getField("totalAmount", amountRes.value);
+
+  if (
+    priceRes.source !== "extracted" &&
+    qtyRes.source === "extracted" &&
+    amountRes.source === "extracted" &&
+    typeof qtyRes.value === "number" && qtyRes.value > 0 &&
+    typeof amountRes.value === "number"
+  ) {
+    priceRes = {
+      value: amountRes.value / qtyRes.value,
+      source: "derived" as FieldSource
+    };
+  }
 
   const result: NonNullable<ExtractedDocumentData> = {
     ...fixture,
