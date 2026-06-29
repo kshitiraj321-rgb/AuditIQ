@@ -41,6 +41,12 @@ const TEST_CASES = [
     po: "12_duplicate_invoice_po.pdf",
     grn: "13_duplicate_invoice_grn.pdf",
     inv: "14_duplicate_invoice_inv.pdf",
+  },
+  {
+    name: "Perfect Match",
+    po: "15_perfect_match_po.pdf",
+    grn: "16_perfect_match_grn.pdf",
+    inv: "17_perfect_match_inv.pdf",
   }
 ];
 
@@ -48,9 +54,14 @@ export async function GET() {
   const results = [];
   
   for (const tc of TEST_CASES) {
-    const poData = tc.po ? extractDocumentData("Purchase Order", "", null) : null;
-    const grnData = tc.grn ? extractDocumentData("Goods Receipt Note", "", null) : null;
-    const invData = tc.inv ? extractDocumentData("Vendor Invoice", "", null) : null;
+    const isPerfectOrDup = tc.name === "Perfect Match" || tc.name === "Duplicate Invoice";
+    const poOverrides = isPerfectOrDup ? { quantity: 100, unitPrice: 500, amount: 50000, vendor: "ABC Industries", documentNumber: "PO-1001" } : null;
+    const grnOverrides = isPerfectOrDup ? { quantity: 100, unitPrice: 500, amount: 50000, vendor: "ABC Industries", documentNumber: "GRN-1001" } : null;
+    const invOverrides = isPerfectOrDup ? { quantity: 100, unitPrice: 500, amount: 50000, vendor: "ABC Industries", documentNumber: "INV-1001", invoiceNumber: tc.name === "Duplicate Invoice" ? "INV-1002" : "INV-1001" } : null;
+
+    const poData = tc.po ? extractDocumentData("Purchase Order", "", poOverrides as any) : null;
+    const grnData = tc.grn ? extractDocumentData("Goods Receipt Note", "", grnOverrides as any) : null;
+    const invData = tc.inv ? extractDocumentData("Vendor Invoice", "", invOverrides as any) : null;
 
     const matchResult = matchDocuments({
       purchaseOrder: poData,
