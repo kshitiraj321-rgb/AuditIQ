@@ -186,7 +186,7 @@ validation/validation_report_[ISO-timestamp].json
 ## Scenario Coverage
 
 | Scenario | PDFs | Expected Exception | Validation Method |
-|---|---|---|---|
+|---|---|---|---|---|---|
 | Perfect Match | 3 | None | Assert exceptions array is empty |
 | Quantity Mismatch | 3 | Quantity Mismatch | Assert `detectExceptions` returns "Quantity Mismatch" |
 | Price Variance | 3 | Price Variance | Assert `detectExceptions` returns "Price Variance" |

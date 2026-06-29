@@ -1,40 +1,40 @@
 {
-  "timestamp": "2026-06-24T17:26:28.159Z",
-  "overallAccuracy": "92.22%",
+  "timestamp": "2026-06-29T09:46:05.956Z",
+  "overallAccuracy": "98.33%",
   "infrastructureFailures": 0,
   "summary": {
     "totalFieldsTested": 180,
-    "passed": 166,
-    "failed": 14
+    "passed": 177,
+    "failed": 3
   },
   "vendorBreakdown": {
     "Alpha Industrial Supplies LLP": {
-      "passed": 33,
-      "failed": 3,
+      "passed": 36,
+      "failed": 0,
       "falsePositives": 0,
-      "falseNegatives": 3,
-      "accuracy": "91.67%"
+      "falseNegatives": 0,
+      "accuracy": "100.00%"
     },
     "Vertex Packaging Solutions Pvt. Ltd.": {
-      "passed": 33,
-      "failed": 3,
+      "passed": 36,
+      "failed": 0,
       "falsePositives": 0,
-      "falseNegatives": 3,
-      "accuracy": "91.67%"
+      "falseNegatives": 0,
+      "accuracy": "100.00%"
     },
     "Orion Office Systems Pvt. Ltd.": {
-      "passed": 33,
-      "failed": 3,
+      "passed": 36,
+      "failed": 0,
       "falsePositives": 0,
-      "falseNegatives": 3,
-      "accuracy": "91.67%"
+      "falseNegatives": 0,
+      "accuracy": "100.00%"
     },
     "Meridian Electricals & Controls": {
-      "passed": 19,
-      "failed": 5,
-      "falsePositives": 0,
-      "falseNegatives": 5,
-      "accuracy": "79.17%"
+      "passed": 21,
+      "failed": 3,
+      "falsePositives": 2,
+      "falseNegatives": 1,
+      "accuracy": "87.50%"
     },
     "Summit Logistics & Warehousing Pvt. Ltd.": {
       "passed": 48,
@@ -62,8 +62,8 @@
     "documentNumber": {
       "passed": 14,
       "failed": 1,
-      "falsePositives": 0,
-      "falseNegatives": 1,
+      "falsePositives": 1,
+      "falseNegatives": 0,
       "accuracy": "93.33%"
     },
     "poNumber": {
@@ -76,8 +76,8 @@
     "grnNumber": {
       "passed": 13,
       "failed": 2,
-      "falsePositives": 0,
-      "falseNegatives": 2,
+      "falsePositives": 1,
+      "falseNegatives": 1,
       "accuracy": "86.67%"
     },
     "invoiceNumber": {
@@ -109,11 +109,11 @@
       "accuracy": "100.00%"
     },
     "unitPrice": {
-      "passed": 4,
-      "failed": 11,
+      "passed": 15,
+      "failed": 0,
       "falsePositives": 0,
-      "falseNegatives": 11,
-      "accuracy": "26.67%"
+      "falseNegatives": 0,
+      "accuracy": "100.00%"
     },
     "amount": {
       "passed": 15,
@@ -130,104 +130,28 @@
       "accuracy": "100.00%"
     }
   },
-  "falsePositiveInventory": [],
-  "falseNegativeInventory": [
-    {
-      "file": "01_perfect_match_po.pdf",
-      "vendor": "Alpha Industrial Supplies LLP",
-      "field": "unitPrice",
-      "expected": 11.375,
-      "aiExtracted": null
-    },
-    {
-      "file": "02_perfect_match_grn.pdf",
-      "vendor": "Alpha Industrial Supplies LLP",
-      "field": "unitPrice",
-      "expected": 11.375,
-      "aiExtracted": null
-    },
-    {
-      "file": "03_perfect_match_inv.pdf",
-      "vendor": "Alpha Industrial Supplies LLP",
-      "field": "unitPrice",
-      "expected": 11.375,
-      "aiExtracted": null
-    },
-    {
-      "file": "04_quantity_mismatch_po.pdf",
-      "vendor": "Vertex Packaging Solutions Pvt. Ltd.",
-      "field": "unitPrice",
-      "expected": 54,
-      "aiExtracted": null
-    },
-    {
-      "file": "05_quantity_mismatch_grn.pdf",
-      "vendor": "Vertex Packaging Solutions Pvt. Ltd.",
-      "field": "unitPrice",
-      "expected": 54,
-      "aiExtracted": null
-    },
-    {
-      "file": "06_quantity_mismatch_inv.pdf",
-      "vendor": "Vertex Packaging Solutions Pvt. Ltd.",
-      "field": "unitPrice",
-      "expected": 54.20779220779221,
-      "aiExtracted": null
-    },
-    {
-      "file": "07_price_variance_po.pdf",
-      "vendor": "Orion Office Systems Pvt. Ltd.",
-      "field": "unitPrice",
-      "expected": 490.90909090909093,
-      "aiExtracted": null
-    },
-    {
-      "file": "08_price_variance_grn.pdf",
-      "vendor": "Orion Office Systems Pvt. Ltd.",
-      "field": "unitPrice",
-      "expected": 490.90909090909093,
-      "aiExtracted": null
-    },
-    {
-      "file": "09_price_variance_inv.pdf",
-      "vendor": "Orion Office Systems Pvt. Ltd.",
-      "field": "unitPrice",
-      "expected": 495.45454545454544,
-      "aiExtracted": null
-    },
-    {
-      "file": "10_missing_grn_po.pdf",
-      "vendor": "Meridian Electricals & Controls",
-      "field": "grnNumber",
-      "expected": "N/A",
-      "aiExtracted": null
-    },
-    {
-      "file": "10_missing_grn_po.pdf",
-      "vendor": "Meridian Electricals & Controls",
-      "field": "unitPrice",
-      "expected": 1400,
-      "aiExtracted": null
-    },
+  "falsePositiveInventory": [
     {
       "file": "11_missing_grn_inv.pdf",
       "vendor": "Meridian Electricals & Controls",
       "field": "documentNumber",
       "expected": "INV-NS-2026-0004",
-      "aiExtracted": null
+      "aiExtracted": "GRN-1001"
     },
     {
       "file": "11_missing_grn_inv.pdf",
       "vendor": "Meridian Electricals & Controls",
       "field": "grnNumber",
       "expected": "N/A",
-      "aiExtracted": null
-    },
+      "aiExtracted": "GRN-1001"
+    }
+  ],
+  "falseNegativeInventory": [
     {
-      "file": "11_missing_grn_inv.pdf",
+      "file": "10_missing_grn_po.pdf",
       "vendor": "Meridian Electricals & Controls",
-      "field": "unitPrice",
-      "expected": 1400,
+      "field": "grnNumber",
+      "expected": "N/A",
       "aiExtracted": null
     }
   ]

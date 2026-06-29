@@ -1,4 +1,4 @@
-# ADR-003: Deterministic Extractor Derivation
+# ADR-003: Deterministic Extraction Normalization
 
 ## Status
 Accepted
@@ -11,8 +11,32 @@ This created a semantic contradiction where a "calculated business metric" was b
 ## Decision
 We decided to strictly separate extraction responsibilities from deterministic business logic:
 1. **LLM Extraction Boundary:** The AI prompt explicitly instructs the model *not* to calculate or derive `unitPrice`. If multiple line items exist, the AI simply extracts `null` as the unit price, serving strictly as an OCR/Extraction node.
-2. **TypeScript Derivation Layer:** We introduced deterministic mathematical derivation within `src/lib/extractor.ts`.
+2. **Deterministic Normalization Layer:** We introduced deterministic mathematical derivation and normalization within `src/lib/extractor.ts`.
 3. **Provenance Chain:** We expanded the `FieldSource` type to include `"derived"`.
+
+## Future Rule
+
+The extraction layer is responsible only for identifying information that exists within the source document.
+
+The normalization layer is responsible for deterministic transformations that improve consistency, completeness, and downstream processing.
+
+No probabilistic reasoning or business policy shall be introduced into the normalization layer.
+
+### Allowed
+✓ Normalize dates
+✓ Normalize currencies
+✓ Derive effective unit price
+✓ Normalize decimals
+✓ Merge duplicate whitespace
+✓ Canonical vendor names
+
+### Not Allowed
+✗ Predict missing vendors
+✗ Guess invoice numbers
+✗ Invent PO numbers
+✗ Calculate risk
+✗ Infer recommendations
+✗ Detect exceptions
 
 ## Implementation Details
 The extraction layer derives missing values strictly under tight guardrails:
