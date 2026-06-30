@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server";
 import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
-import { extractDocumentData } from "@/lib/extractor";
+import { extractDocumentData, extractionStatus } from "@/lib/extractor";
 
 const ExtractionSchema = z.object({
   vendor: z.string().nullable(),
@@ -88,15 +87,17 @@ ${documentText}`,
     });
 
     const finalData = extractDocumentData(documentType, documentText, object);
+    const extraction = finalData ? extractionStatus.get(finalData) ?? null : null;
 
     return Response.json({
       success: true,
       data: finalData,
+      extraction,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Extraction error:", error);
     return Response.json(
-      { success: false, error: error.message || "Failed to extract data" },
+      { success: false, error: error instanceof Error ? error.message : "Failed to extract data" },
       { status: 500 }
     );
   }

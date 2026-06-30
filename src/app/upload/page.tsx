@@ -5,7 +5,7 @@ import {
   verifyClassificationByContent,
   type ContentVerificationResult,
 } from "@/lib/classifier";
-import { extractDocumentData, extractionProvenance, type ExtractorMetadata, type AIExtractionFields } from "@/lib/extractor";
+import { extractDocumentData, extractionProvenance, extractionStatus, type ExtractorMetadata, type AIExtractionFields, type ExtractionStatus } from "@/lib/extractor";
 import {
   calculateFinancialExposure,
   type FinancialExposureResult,
@@ -31,6 +31,8 @@ import { calculateExceptionRisks, type ExceptionRiskScore } from "@/lib/exceptio
 import { prioritizeExceptions, type PrioritizedException } from "@/lib/prioritizationEngine";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { EmptyState, PageShell, Panel, SectionHeading, Tag } from "@/components/presentation";
+import { UploadCloud, FileType, CheckCircle, Boxes, FileDown, Search, ArrowRight, ShieldCheck, Database, FileText } from "lucide-react";
 
 type AnalysisResult = {
   files: {
@@ -70,6 +72,11 @@ type AnalysisResult = {
     goodsReceiptNote?: ExtractorMetadata;
     vendorInvoice?: ExtractorMetadata;
   };
+  extractionStatus?: {
+    purchaseOrder?: ExtractionStatus;
+    goodsReceiptNote?: ExtractionStatus;
+    vendorInvoice?: ExtractionStatus;
+  };
   extractionErrors?: {
     purchaseOrder?: string | null;
     goodsReceiptNote?: string | null;
@@ -81,6 +88,17 @@ type AnalysisResult = {
 };
 
 const analysisStorageKey = "auditIQAnalysis";
+
+const processingSteps = [
+  "Uploading Documents",
+  "Classifying Documents",
+  "AI Extraction",
+  "Three-Way Matching",
+  "Exception Detection",
+  "Risk Assessment",
+  "Explainability",
+  "Building Investigation Workspace",
+] as const;
 
 export default function UploadPage() {
   const router = useRouter();
@@ -94,6 +112,7 @@ export default function UploadPage() {
 
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [activeProcessingStep, setActiveProcessingStep] = useState<number | null>(null);
   const [assignedFiles, setAssignedFiles] = useState<{
     purchaseOrder: string | null;
     goodsReceiptNote: string | null;
@@ -142,6 +161,10 @@ export default function UploadPage() {
     }));
   };
 
+  const advanceProcessingStep = (stepIndex: number) => {
+    setActiveProcessingStep(stepIndex);
+  };
+
   const selectedPO = stagedFiles.find(f => f.id === assignedFiles.purchaseOrder)?.file || null;
   const selectedGRN = stagedFiles.find(f => f.id === assignedFiles.goodsReceiptNote)?.file || null;
   const selectedInvoice = stagedFiles.find(f => f.id === assignedFiles.vendorInvoice)?.file || null;
@@ -160,11 +183,13 @@ export default function UploadPage() {
     }
 
     setIsAnalyzing(true);
+    advanceProcessingStep(0);
     try {
-      const poFile = selectedPO;
+    const poFile = selectedPO;
     const grnFile = selectedGRN;
     const invoiceFile = selectedInvoice;
 
+    advanceProcessingStep(1);
     const purchaseOrderClassification = poFile ? { ...classifyDocument(poFile.name), type: "Purchase Order" } : { type: "Purchase Order", confidence: 0 };
     const goodsReceiptNoteClassification = grnFile ? { ...classifyDocument(grnFile.name), type: "Goods Receipt Note" } : { type: "Goods Receipt Note", confidence: 0 };
     const vendorInvoiceClassification = invoiceFile ? { ...classifyDocument(invoiceFile.name), type: "Vendor Invoice" } : { type: "Vendor Invoice", confidence: 0 };
@@ -194,6 +219,7 @@ export default function UploadPage() {
     ) : { verified: false, contentType: "Vendor Invoice", adjustedConfidence: 0, conflict: false };
 
     // Fetch AI extractions in parallel — page owns all async/network operations
+    advanceProcessingStep(2);
     const [poAiResult, grnAiResult, invAiResult] = await Promise.all([
       poFile ? fetch('/api/extract', {
         method: 'POST',
@@ -228,7 +254,11 @@ export default function UploadPage() {
     const poProvenance = purchaseOrderData && extractionProvenance ? extractionProvenance.get(purchaseOrderData) : undefined;
     const grnProvenance = goodsReceiptNoteData && extractionProvenance ? extractionProvenance.get(goodsReceiptNoteData) : undefined;
     const invProvenance = vendorInvoiceData && extractionProvenance ? extractionProvenance.get(vendorInvoiceData) : undefined;
+    const poExtractionStatus = purchaseOrderData && extractionStatus ? extractionStatus.get(purchaseOrderData) : undefined;
+    const grnExtractionStatus = goodsReceiptNoteData && extractionStatus ? extractionStatus.get(goodsReceiptNoteData) : undefined;
+    const invExtractionStatus = vendorInvoiceData && extractionStatus ? extractionStatus.get(vendorInvoiceData) : undefined;
 
+    advanceProcessingStep(3);
     const matchResult = matchDocuments({
       purchaseOrder: purchaseOrderData,
       goodsReceiptNote: goodsReceiptNoteData,
@@ -248,6 +278,7 @@ export default function UploadPage() {
     
     console.log("vendorInvoiceData for Duplicate Invoice check: " + JSON.stringify(vendorInvoiceData));
 
+    advanceProcessingStep(4);
     const exceptions = detectExceptions({
       purchaseOrder: purchaseOrderData,
       goodsReceiptNote: goodsReceiptNoteData,
@@ -283,6 +314,7 @@ export default function UploadPage() {
       vendorInvoice: vendorInvoiceData,
       exceptions,
     });
+    advanceProcessingStep(5);
     const risk = assessRisk({
       exceptions,
       financialExposure,
@@ -292,6 +324,7 @@ export default function UploadPage() {
       risk,
       financialExposure,
     };
+    advanceProcessingStep(6);
     const recommendations = generateRecommendations(recommendationInput);
     const explainability = generateExplainability({
       matchResult,
@@ -353,6 +386,11 @@ export default function UploadPage() {
         purchaseOrder: poProvenance,
         goodsReceiptNote: grnProvenance,
         vendorInvoice: invProvenance,
+      },
+      extractionStatus: {
+        purchaseOrder: poExtractionStatus,
+        goodsReceiptNote: grnExtractionStatus,
+        vendorInvoice: invExtractionStatus,
       },
       extractionErrors: {
         purchaseOrder: poAiResult?.success ? null : poAiResult?.error || "Unknown extraction failure",
@@ -429,9 +467,11 @@ export default function UploadPage() {
     }
     // --- END TELEMETRY ---
 
+    advanceProcessingStep(7);
     sessionStorage.setItem(analysisStorageKey, JSON.stringify(analysisResult));
     router.push("/results");
     } finally {
+      setActiveProcessingStep(null);
       setIsAnalyzing(false);
     }
   }
@@ -439,14 +479,24 @@ export default function UploadPage() {
   const renderSlot = (label: string, slotKey: keyof typeof assignedFiles) => {
     const isError = !assignedFiles[slotKey] || hasDuplicates;
     return (
-      <div className={`border p-4 rounded ${isError ? 'border-red-400' : 'border-gray-200'}`}>
-        <h3 className="font-bold mb-2">{label}</h3>
+      <div
+        className={`rounded-xl border p-5 transition-shadow ${
+          isError ? "border-rose-200 bg-rose-50/60 shadow-[0_4px_12px_rgba(244,63,94,0.05)]" : "border-slate-200 bg-white shadow-sm"
+        }`}
+      >
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <FileText className={`h-4 w-4 ${isError ? "text-rose-500" : "text-slate-400"}`} />
+            <h3 className="text-sm font-semibold text-slate-950">{label}</h3>
+          </div>
+          <Tag tone={isError ? "danger" : "success"}>{isError ? "Needs attention" : "Assigned"}</Tag>
+        </div>
         <select
-          className="w-full border p-2 rounded"
+          className="w-full rounded-md border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
           value={assignedFiles[slotKey] || ""}
           onChange={(e) => handleAssignmentChange(slotKey, e.target.value)}
         >
-          <option value="">-- Select File --</option>
+          <option value="">Select a file</option>
           {stagedFiles.map((sf) => (
             <option key={sf.id} value={sf.id}>
               {sf.file.name} (Suggested: {sf.suggestedType})
@@ -457,64 +507,206 @@ export default function UploadPage() {
     );
   };
 
-  return (
-    <main className="min-h-screen p-8">
-      <h1 className="text-4xl font-bold mb-6">
-        Upload Documents
-      </h1>
+  const isStepActive = (stepIndex: number) => activeProcessingStep === stepIndex;
+  const isStepComplete = (stepIndex: number) =>
+    activeProcessingStep !== null && activeProcessingStep > stepIndex;
 
-      <div className="mb-8 border-2 border-dashed border-gray-300 p-8 text-center rounded">
-        <label className="cursor-pointer">
-          <span className="text-blue-600 font-semibold text-lg">Select Files to Audit</span>
-          <input
-            type="file"
-            multiple
-            className="hidden"
-            onChange={handleFilesDrop}
-          />
-        </label>
-        <p className="mt-2 text-gray-500">Upload your Purchase Order, Goods Receipt Note, and Vendor Invoice together.</p>
+  const renderProcessingStepper = () => (
+    <Panel
+      title="Processing sequence"
+      subtitle="Deterministic status only. No progress percentages. No ETA."
+      tone="accent"
+      className="h-full"
+    >
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">AI workflow</p>
+          <p className="mt-2 text-sm text-slate-500">
+            The engine advances through fixed stages so judges can follow the audit state.
+          </p>
+        </div>
+        <Tag tone="accent">Live</Tag>
       </div>
 
-      {stagedFiles.length > 0 && (
-        <div className="space-y-6">
-          <h2 className="text-2xl font-semibold">Assignment Review</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <ol className="space-y-2">
+        {processingSteps.map((step, index) => {
+          const active = isStepActive(index);
+          const complete = isStepComplete(index);
+
+          return (
+            <li
+              key={step}
+              className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition ${
+                active
+                  ? "border-slate-400 bg-white text-slate-950 shadow-[0_10px_24px_rgba(15,23,42,0.08)]"
+                  : complete
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                    : "border-slate-200 bg-white text-slate-500"
+              }`}
+            >
+              <span
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+                  active
+                    ? "bg-slate-950 text-white"
+                    : complete
+                      ? "bg-emerald-600 text-white"
+                      : "bg-slate-200 text-slate-500"
+                }`}
+              >
+                {complete ? "✓" : index + 1}
+              </span>
+              <span className={`text-sm font-medium ${active ? "text-slate-950" : ""}`}>{step}</span>
+              {active && (
+                <span className="ml-auto text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+                  In progress
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </Panel>
+  );
+
+  return (
+    <PageShell
+      eyebrow="AuditIQ Blueprint V3.0.1"
+      title="Audit upload"
+      description="Stage procurement documents, confirm their roles, and launch the deterministic analysis workflow."
+      actions={<Tag tone="slate">Deterministic workflow</Tag>}
+    >
+      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <Panel
+          title="Upload zone"
+          subtitle="Choose the three source documents and let AuditIQ classify them before analysis."
+        >
+          <label className="group block cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-10 py-14 text-center transition duration-200 hover:-translate-y-0.5 hover:border-slate-500 hover:bg-white hover:shadow-[0_14px_30px_rgba(15,23,42,0.08)]">
+            <input type="file" multiple className="hidden" onChange={handleFilesDrop} />
+            <div className="mx-auto flex max-w-xl flex-col items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200">
+                <UploadCloud className="h-8 w-8 text-slate-400 group-hover:text-slate-600 transition-colors" />
+              </div>
+              <div className="flex gap-2">
+                <span className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-600 shadow-sm">
+                  <FileType className="h-3 w-3" /> PDF Only
+                </span>
+                <span className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-600 shadow-sm">
+                  <Boxes className="h-3 w-3" /> 3 Documents Max
+                </span>
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-slate-950">
+                  Select the PO, GRN, and invoice
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Drop files here or click to browse. The engine requires exactly three artifacts to run a complete procurement audit.
+                </p>
+              </div>
+            </div>
+          </label>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            {[
+              { icon: <Search className="h-5 w-5" />, title: "Classification", body: "File names and content are evaluated together.", status: "Automatic" },
+              { icon: <FileDown className="h-5 w-5" />, title: "Extraction", body: "Structured fields are mapped from text.", status: "AI Powered" },
+              { icon: <Database className="h-5 w-5" />, title: "Workspace", body: "Results transfer to investigation console.", status: "Live context" },
+            ].map(({ icon, title, body, status }) => (
+              <div key={title} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 text-slate-600 border border-slate-100">
+                    {icon}
+                  </div>
+                  <Tag tone="slate">{status}</Tag>
+                </div>
+                <p className="text-sm font-semibold text-slate-950">{title}</p>
+                <p className="mt-1 text-sm leading-6 text-slate-500">{body}</p>
+              </div>
+            ))}
+          </div>
+        </Panel>
+
+        {isAnalyzing ? (
+          renderProcessingStepper()
+        ) : (
+          <Panel title="What happens next" subtitle="A concise preview of the audit flow.">
+            <div className="space-y-3">
+              {[
+                "Documents are classified from file content and naming signals.",
+                "Extracted fields are matched across PO, GRN, and invoice.",
+                "Exceptions, risk, and explainability are assembled into results.",
+              ].map((item) => (
+                <div
+                  key={item}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600 transition hover:border-slate-300 hover:bg-white"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          </Panel>
+        )}
+      </div>
+
+      {stagedFiles.length > 0 ? (
+        <div className="mt-6 space-y-6">
+          <SectionHeading
+            eyebrow="Assignment review"
+            title="Map each file to its document role."
+            description="The deterministic selector stays in place so the audit remains explainable and repeatable."
+          />
+
+          <div className="grid gap-4 md:grid-cols-3">
             {renderSlot("Purchase Order (PO)", "purchaseOrder")}
             {renderSlot("Goods Receipt Note (GRN)", "goodsReceiptNote")}
             {renderSlot("Vendor Invoice", "vendorInvoice")}
           </div>
 
-          {hasDuplicates && (
-            <div className="mt-4 border border-red-400 bg-red-50 p-4 rounded text-red-700">
-              Conflict: You have assigned the same file to multiple slots. Each slot must have a unique file.
-            </div>
-          )}
+          {hasDuplicates ? (
+            <EmptyState
+              title="Duplicate assignment detected"
+              description="Each slot must point to a unique file before the audit can run."
+            />
+          ) : null}
 
-          {validationMessage && !hasDuplicates && (
-            <div className="mt-4 border border-yellow-400 bg-yellow-50 p-4 rounded text-yellow-700">
+          {validationMessage && !hasDuplicates ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               {validationMessage}
             </div>
-          )}
+          ) : null}
 
-          <div className="mt-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 rounded-2xl border border-slate-200 bg-slate-950 p-6 shadow-xl text-white">
+            <div>
+              <p className="text-lg font-semibold text-white">Ready to run the audit?</p>
+              <p className="mt-1 text-sm text-slate-300">
+                Launching the audit will preserve the existing API flow and move straight into results.
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => {
                 void handleAnalyzeClick();
               }}
               disabled={!isValid || isAnalyzing}
-              className={`px-6 py-3 border rounded text-lg font-semibold ${
+              className={`shrink-0 inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold transition ${
                 isValid && !isAnalyzing
-                  ? "bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  ? "bg-white text-slate-900 hover:-translate-y-0.5 hover:bg-slate-100 hover:shadow-lg"
+                  : "cursor-not-allowed bg-slate-800 text-slate-500"
               }`}
             >
-              {isAnalyzing ? "Analyzing..." : "Run Audit"}
+              {isAnalyzing ? "Processing audit..." : "Run Deterministic Audit"}
+              {!isAnalyzing && <ArrowRight className="h-4 w-4" />}
             </button>
           </div>
         </div>
+      ) : (
+        <div className="mt-6">
+          <EmptyState
+            icon={<UploadCloud className="h-10 w-10 text-slate-400" />}
+            title="Waiting for documents"
+            description="Drop or browse to upload the PO, GRN, and Invoice to unlock the assignment review."
+          />
+        </div>
       )}
-    </main>
+    </PageShell>
   );
 }

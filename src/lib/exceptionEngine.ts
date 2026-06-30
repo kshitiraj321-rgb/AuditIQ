@@ -16,6 +16,7 @@ export type DetectedException = {
   type:
     | "Quantity Mismatch"
     | "Price Variance"
+    | "Missing Purchase Order"
     | "Missing Invoice"
     | "Missing GRN"
     | "Duplicate Invoice"
@@ -55,6 +56,11 @@ export function detectExceptions({
 
   if (!vendorInvoice) {
     addException(exceptions, "Missing Invoice");
+    return exceptions;
+  }
+
+  if (!purchaseOrder) {
+    addException(exceptions, "Missing Purchase Order");
     return exceptions;
   }
 

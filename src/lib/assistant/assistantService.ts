@@ -5,13 +5,19 @@ export type ChatMessage = {
   content: string;
 };
 
+type AssistantException = {
+  type: string;
+  severity: string;
+  message?: string;
+} | null;
+
 export async function askAssistant(
   query: string,
   analysisResult: any,
-  selectedIdx: number,
+  selectedException: AssistantException,
   history: ChatMessage[]
 ): Promise<string> {
-  const prompt = buildSystemPrompt(analysisResult, selectedIdx);
+  const prompt = buildSystemPrompt(analysisResult, selectedException);
   const qLower = query.toLowerCase();
 
   // Simulate network delay
@@ -31,8 +37,11 @@ export async function askAssistant(
   }
 
   // 2. Mock answering based on extracted data / match result
-  const selectedException = analysisResult.exceptions[selectedIdx];
   const type = selectedException?.type;
+
+  if (!type) {
+    return "I do not have enough data in the current audit to answer that question.";
+  }
 
   if (qLower.includes("exposure") || qLower.includes("financial")) {
     const exposure = analysisResult.financialExposure.breakdown.find(

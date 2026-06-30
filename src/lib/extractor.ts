@@ -32,6 +32,16 @@ export type ExtractorMetadata = {
 
 export const extractionProvenance = new WeakMap<NonNullable<ExtractedDocumentData>, ExtractorMetadata>();
 
+export type ExtractionMode = "ai" | "fallback";
+
+export type ExtractionStatus = {
+  mode: ExtractionMode;
+  reason: string | null;
+  fallbackFields: (keyof ExtractorMetadata)[];
+};
+
+export const extractionStatus = new WeakMap<NonNullable<ExtractedDocumentData>, ExtractionStatus>();
+
 const fixtureData = {
   "Purchase Order": {
     vendor: "ABC Industries",
@@ -227,6 +237,20 @@ export function extractDocumentData(
     totalAmount: totalRes.source,
   });
 
+  const fallbackFields = Object.entries(extractionProvenance.get(result) ?? {})
+    .filter(([, source]) => source === "fallback" || source === "missing")
+    .map(([key]) => key as keyof ExtractorMetadata);
+
+  extractionStatus.set(result, {
+    mode: fallbackFields.length > 0 ? "fallback" : "ai",
+    reason:
+      fallbackFields.length === 0
+        ? null
+        : resolvedAiData
+          ? `AI extraction returned incomplete values. Demonstration data was used for: ${fallbackFields.join(", ")}.`
+          : "AI extraction unavailable. Demonstration data has been used.",
+    fallbackFields,
+  });
+
   return result;
 }
-

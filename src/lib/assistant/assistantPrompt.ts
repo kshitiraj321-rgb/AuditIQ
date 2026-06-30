@@ -1,5 +1,13 @@
-export function buildSystemPrompt(analysisResult: any, selectedIdx: number): string {
-  const selectedException = analysisResult.exceptions[selectedIdx];
+type AssistantException = {
+  type: string;
+  severity: string;
+  message?: string;
+} | null;
+
+export function buildSystemPrompt(
+  analysisResult: any,
+  selectedException: AssistantException
+): string {
   const contextData = {
     exception: selectedException,
     extractedData: analysisResult.extractedData,

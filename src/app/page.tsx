@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
 import type { PrioritizedException } from "@/lib/prioritizationEngine";
+import { startFreshAuditSession } from "@/lib/auditSessionLifecycle";
+import { EmptyState, MetricCard, PageShell, Panel, Tag } from "@/components/presentation";
+import { FileText, Building, Calendar, AlertTriangle, ShieldCheck, Activity, CheckCircle, FileCheck, CircleDashed, ClipboardCheck, DollarSign } from "lucide-react";
 
 type DashboardAnalysis = {
   files: {
@@ -20,6 +24,11 @@ type DashboardAnalysis = {
   risk: {
     score: number;
     level: string;
+  };
+  extractedData?: {
+    vendorInvoice?: {
+      vendor: string;
+    };
   };
   prioritizedQueue?: PrioritizedException[];
 };
@@ -43,14 +52,21 @@ const emptyAnalysis: DashboardAnalysis = {
   prioritizedQueue: [],
 };
 
-function normalizeAnalysis(
-  parsedAnalysis: Partial<DashboardAnalysis> | null
-): DashboardAnalysis {
+function normalizeAnalysis(parsedAnalysis: Partial<DashboardAnalysis> | null): DashboardAnalysis {
   return {
     files: {
-      purchaseOrder: parsedAnalysis?.files?.purchaseOrder ?? "",
-      goodsReceiptNote: parsedAnalysis?.files?.goodsReceiptNote ?? "",
-      vendorInvoice: parsedAnalysis?.files?.vendorInvoice ?? "",
+      purchaseOrder:
+        typeof parsedAnalysis?.files?.purchaseOrder === "string"
+          ? parsedAnalysis.files.purchaseOrder
+          : "",
+      goodsReceiptNote:
+        typeof parsedAnalysis?.files?.goodsReceiptNote === "string"
+          ? parsedAnalysis.files.goodsReceiptNote
+          : "",
+      vendorInvoice:
+        typeof parsedAnalysis?.files?.vendorInvoice === "string"
+          ? parsedAnalysis.files.vendorInvoice
+          : "",
     },
     exceptions: Array.isArray(parsedAnalysis?.exceptions)
       ? parsedAnalysis.exceptions.filter((exception) => {
@@ -96,28 +112,43 @@ function readAnalysisFromStorage() {
       return emptyAnalysis;
     }
 
-    const parsedAnalysis = JSON.parse(storedAnalysis) as
-      | Partial<DashboardAnalysis>
-      | null;
-
+    const parsedAnalysis = JSON.parse(storedAnalysis) as Partial<DashboardAnalysis> | null;
     return normalizeAnalysis(parsedAnalysis);
   } catch {
     return emptyAnalysis;
   }
 }
 
+function statTone(value: number, threshold: number) {
+  return value >= threshold ? "red" : "blue";
+}
+
 export default function Home() {
   const [analysis, setAnalysis] = useState<DashboardAnalysis>(emptyAnalysis);
-  const [isClient, setIsClient] = useState(false);
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+  const pathname = usePathname();
 
   useEffect(() => {
-    setIsClient(true);
-    const timeoutId = window.setTimeout(() => {
-      setAnalysis(readAnalysisFromStorage());
-    }, 0);
+    setAnalysis(readAnalysisFromStorage());
 
-    return () => window.clearTimeout(timeoutId);
-  }, []);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        setAnalysis(readAnalysisFromStorage());
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [pathname]);
+
+  if (!isClient) return null;
 
   const documentCount = Object.values(analysis.files).filter(Boolean).length;
   const hasAnalysis =
@@ -127,137 +158,267 @@ export default function Home() {
     analysis.risk.score > 0;
 
   const topExceptions = analysis.prioritizedQueue || [];
-  const complianceRisk = topExceptions.length > 0 ? topExceptions[0].complianceScore : 0;
-  const vendorRisk = topExceptions.length > 0 ? topExceptions[0].vendorScore : 0;
-  
-  if (!isClient) return null;
+  const leadException = topExceptions[0];
+  const complianceRisk = leadException?.complianceScore ?? 0;
+  const vendorRisk = leadException?.vendorScore ?? 0;
+  const highAttention =
+    analysis.financialExposure.totalExposure > 0 ||
+    analysis.exceptions.length > 0 ||
+    analysis.risk.level === "High" ||
+    analysis.risk.level === "Critical";
+
+  const statusLabel = hasAnalysis ? "Live audit snapshot" : "Awaiting document upload";
+  const statusTone = hasAnalysis ? "success" : "warning";
 
   return (
-    <main className="min-h-screen p-4 md:p-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-2">AuditIQ</h1>
-          <p className="text-lg md:text-xl text-gray-600">AI-Powered Exception Intelligence Platform</p>
-        </div>
-        <div className="flex gap-4">
-          <Link href="/upload" className="px-4 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700">
-            Upload Documents
+    <PageShell
+      eyebrow="AuditIQ Executive Dashboard"
+      title="Executive audit intelligence"
+      description="Live procurement exception status, financial exposure, and investigation priority from the current audit session."
+      actions={
+        <>
+          <Tag tone={statusTone}>{statusLabel}</Tag>
+          <Link
+            href="/upload"
+            onClick={startFreshAuditSession}
+            className="inline-flex items-center justify-center rounded-md bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg"
+          >
+            Start New Audit
           </Link>
-          <Link href="/results" className="px-4 py-2 border border-blue-600 text-blue-600 font-semibold rounded hover:bg-blue-50">
-            View Results
+          <Link
+            href="/results"
+            className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50"
+          >
+            Open Workspace
           </Link>
-        </div>
+        </>
+      }
+    >
+      {!hasAnalysis ? (
+        <EmptyState
+          icon={<ShieldCheck className="h-10 w-10 text-emerald-500" />}
+          title="Audit Clean"
+          description="No procurement risks detected. Upload another audit to continue monitoring."
+          action={
+            <div className="flex justify-center gap-3">
+              <Link
+                href="/upload"
+                onClick={startFreshAuditSession}
+                className="inline-flex items-center justify-center rounded-md bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                Upload Documents
+              </Link>
+              <Link
+                href="/results"
+                className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
+              >
+                View Results Layout
+              </Link>
+            </div>
+          }
+        />
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Documents Analyzed"
+          value={String(documentCount)}
+          detail={<span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-sky-500"></span> {documentCount} active artifacts</span>}
+          footer="Current Audit"
+          accent="blue"
+          icon={<FileText className="h-4 w-4" />}
+          trend="up"
+        />
+        <MetricCard
+          label="Exceptions Found"
+          value={String(analysis.exceptions.length)}
+          detail={<span className="flex items-center gap-2"><span className={`h-2 w-2 rounded-full ${analysis.exceptions.length > 0 ? "bg-rose-500" : "bg-emerald-500"}`}></span> {analysis.exceptions.length > 0 ? "Attention required" : "No queue items"}</span>}
+          footer="Live Snapshot"
+          accent={statTone(analysis.exceptions.length, 1)}
+          icon={<AlertTriangle className="h-4 w-4" />}
+          trend={analysis.exceptions.length > 0 ? "up" : "neutral"}
+        />
+        <MetricCard
+          label="Financial Exposure"
+          value={formatCurrency(analysis.financialExposure.totalExposure)}
+          detail={<span className="flex items-center gap-2"><span className={`h-2 w-2 rounded-full ${analysis.financialExposure.totalExposure > 0 ? "bg-amber-500" : "bg-emerald-500"}`}></span> {analysis.financialExposure.totalExposure > 0 ? "Exposure detected" : "No financial exposure"}</span>}
+          footer="Current Audit"
+          accent={statTone(analysis.financialExposure.totalExposure, 1) === "red" ? "red" : "amber"}
+          icon={<DollarSign className="h-4 w-4" />}
+          trend={analysis.financialExposure.totalExposure > 0 ? "down" : "neutral"}
+        />
+        <MetricCard
+          label="Risk Score"
+          value={String(analysis.risk.score)}
+          detail={<span className="flex items-center gap-2"><span className={`h-2 w-2 rounded-full ${analysis.risk.level === "Critical" || analysis.risk.level === "High" ? "bg-rose-500" : "bg-emerald-500"}`}></span> Level: {analysis.risk.level}</span>}
+          footer="Live Snapshot"
+          accent={analysis.risk.level === "Critical" || analysis.risk.level === "High" ? "red" : "green"}
+          icon={<Activity className="h-4 w-4" />}
+          trend={analysis.risk.level === "Critical" || analysis.risk.level === "High" ? "up" : "neutral"}
+        />
       </div>
 
-      {!hasAnalysis && (
-        <div className="border border-blue-200 bg-blue-50 p-6 rounded-lg mb-8 text-center">
-          <p className="font-semibold text-xl text-blue-800">No analysis found yet.</p>
-          <p className="mt-2 text-blue-600">
-            Upload documents to populate the dashboard with the latest analysis.
-          </p>
-        </div>
-      )}
-
-      {/* KPI Area */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="border p-4 rounded shadow-sm bg-white">
-          <h2 className="text-sm text-gray-500 font-semibold uppercase tracking-wide">Documents Analyzed</h2>
-          <p className="text-3xl font-bold mt-2">{documentCount}</p>
-        </div>
-
-        <div className="border p-4 rounded shadow-sm bg-white">
-          <h2 className="text-sm text-gray-500 font-semibold uppercase tracking-wide">Exceptions Found</h2>
-          <p className="text-3xl font-bold mt-2">{analysis.exceptions.length}</p>
-        </div>
-
-        <div className="border p-4 rounded shadow-sm bg-white">
-          <h2 className="text-sm text-gray-500 font-semibold uppercase tracking-wide">Financial Exposure</h2>
-          <p className="text-3xl font-bold mt-2 text-red-600">
-            {formatCurrency(analysis.financialExposure.totalExposure)}
-          </p>
-        </div>
-
-        <div className="border p-4 rounded shadow-sm bg-white">
-          <h2 className="text-sm text-gray-500 font-semibold uppercase tracking-wide">Risk Score</h2>
-          <div className="flex items-end gap-2 mt-2">
-            <p className="text-3xl font-bold">{analysis.risk.score}</p>
-            <p className="text-sm font-semibold text-gray-600 mb-1 px-2 py-1 bg-gray-100 rounded">Level: {analysis.risk.level}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Widget Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Priority Exceptions */}
-        <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-2xl font-bold border-b pb-2">Priority Exceptions</h2>
-          
-          {hasAnalysis && topExceptions.length === 0 ? (
-            <div className="border p-6 rounded-lg text-center bg-gray-50 text-gray-500">
-              No priority exceptions found. The current audit is clean.
+      <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="grid gap-6">
+          <Panel
+            title="Executive brief"
+            subtitle="Immediate posture for the current procurement audit."
+            tone="accent"
+          >
+            <div className="grid grid-cols-2 gap-x-4 gap-y-5 rounded-lg border border-white/10 bg-white/5 p-5 md:grid-cols-4">
+              <div>
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <CheckCircle className="h-3 w-3" /> Audit Status
+                </p>
+                <p className={`mt-2 text-sm font-semibold flex items-center gap-1.5 ${hasAnalysis ? "text-emerald-400" : "text-white"}`}>
+                  {hasAnalysis ? <CheckCircle className="h-4 w-4" /> : null} {hasAnalysis ? "Completed" : "Pending"}
+                </p>
+              </div>
+              <div>
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <Building className="h-3 w-3" /> Current Vendor
+                </p>
+                <p className="mt-2 text-sm font-semibold text-white truncate" title={analysis.extractedData?.vendorInvoice?.vendor || "Not assigned"}>
+                  {analysis.extractedData?.vendorInvoice?.vendor || (hasAnalysis ? "Extracted from Documents" : "Not assigned")}
+                </p>
+              </div>
+              <div>
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <Calendar className="h-3 w-3" /> Audit Date
+                </p>
+                <p className="mt-2 text-sm font-semibold text-white">
+                  {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              </div>
+              <div>
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <Activity className="h-3 w-3" /> Risk Level
+                </p>
+                <div className="mt-2">
+                  <Tag tone={highAttention ? "danger" : "success"}>{analysis.risk.level}</Tag>
+                </div>
+              </div>
+              <div>
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <ClipboardCheck className="h-3 w-3" /> Recommendation
+                </p>
+                <p className={`mt-2 text-sm font-semibold ${highAttention ? "text-rose-400" : "text-sky-400"}`}>
+                  {highAttention ? "Review Required" : "Approve Match"}
+                </p>
+              </div>
+              <div>
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <FileCheck className="h-3 w-3" /> Documents
+                </p>
+                <p className="mt-2 text-sm font-semibold text-white">{documentCount} attached</p>
+              </div>
+              <div>
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <CircleDashed className="h-3 w-3" /> Processing
+                </p>
+                <p className={`mt-2 text-sm font-semibold ${hasAnalysis ? "text-emerald-400" : "text-white"}`}>
+                  {hasAnalysis ? "Success" : "Awaiting input"}
+                </p>
+              </div>
+              <div>
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <ShieldCheck className="h-3 w-3" /> Finding
+                </p>
+                <p className={`mt-2 text-sm font-semibold flex items-center gap-1.5 ${highAttention ? "text-rose-400" : "text-emerald-400"}`}>
+                  {!highAttention && hasAnalysis ? <ShieldCheck className="h-4 w-4" /> : null}
+                  {highAttention ? "Exceptions present" : "Clear for processing"}
+                </p>
+              </div>
             </div>
-          ) : !hasAnalysis ? (
-             <div className="border p-6 rounded-lg text-center bg-gray-50 text-gray-400">
-              N/A - Run an audit to see exceptions.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {topExceptions.map((ex, idx) => (
-                <div key={idx} className="border p-4 rounded-lg shadow-sm bg-white flex justify-between items-center hover:border-blue-400 transition-colors">
-                  <div>
-                    <h3 className="font-semibold text-lg">{ex.exception.type}</h3>
-                    <p className="text-sm text-gray-600 mt-1">Severity: <span className="font-medium text-red-600">{ex.exception.severity}</span></p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Priority Score</p>
-                    <p className="text-2xl font-bold text-blue-700">{ex.finalPriorityScore}</p>
-                  </div>
+          </Panel>
+
+          <Panel title="Exposure summary" subtitle="Actual totals from the current audit session.">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                ["Exposure", formatCurrency(analysis.financialExposure.totalExposure), "Estimated financial risk"],
+                ["Priority load", String(topExceptions.length), "Ranked exceptions"],
+                ["Vendor pressure", String(vendorRisk), "Vendor risk signal"],
+              ].map(([label, value, detail]) => (
+                <div key={label} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
+                  <p className="mt-1 text-xs text-slate-500">{detail}</p>
                 </div>
               ))}
             </div>
-          )}
+          </Panel>
         </div>
 
-        {/* Context Column */}
-        <div className="space-y-6">
-          <div className="border p-5 rounded-lg shadow-sm bg-white">
-            <h2 className="text-xl font-bold mb-4">Transaction Compliance Risk</h2>
-            {!hasAnalysis || topExceptions.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">N/A - No exceptions detected.</p>
-            ) : (
-              <div className="flex flex-col items-center">
-                <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
-                  <div className="bg-yellow-500 h-4 rounded-full" style={{ width: `${Math.min(100, complianceRisk)}%` }}></div>
-                </div>
-                <p className="text-3xl font-bold text-yellow-600">{complianceRisk}</p>
-                <p className="text-sm text-gray-500">Impact Score</p>
-              </div>
-            )}
-          </div>
-
-          <div className="border p-5 rounded-lg shadow-sm bg-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 bg-gray-800 text-white text-xs px-2 py-1 rounded-bl-lg font-medium">
-              Current Audit Only
+        <div className="grid gap-6">
+          <Panel
+            title="Recent Audit"
+            subtitle="The most recent session artifacts captured in this browser."
+          >
+            <div className="space-y-3">
+              {Object.entries(analysis.files).map(([key, value]) => {
+                const label =
+                  key === "purchaseOrder"
+                    ? "PO"
+                    : key === "goodsReceiptNote"
+                      ? "GRN"
+                      : "Invoice";
+                return (
+                  <div
+                    key={key}
+                    className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-slate-300 hover:bg-white"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-950">{label}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">{value || "Not uploaded"}</p>
+                      </div>
+                    </div>
+                    <Tag tone={value ? "success" : "slate"}>{value ? "Loaded" : "Missing"}</Tag>
+                  </div>
+                );
+              })}
             </div>
-            <h2 className="text-xl font-bold mb-4">Current Vendor Risk</h2>
-            {!hasAnalysis || topExceptions.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">Vendor Unknown</p>
+          </Panel>
+
+          <Panel
+            title="Priority Exceptions"
+            subtitle={hasAnalysis ? "High-priority items sorted by the exception engine." : "Awaiting the first audit session."}
+          >
+            {topExceptions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50/50 py-10 px-6 text-center">
+                <CheckCircle className="mb-3 h-8 w-8 text-emerald-500" />
+                <p className="text-sm font-semibold text-slate-900">✓ No priority exceptions</p>
+                <p className="mx-auto mt-2 max-w-sm text-sm text-slate-500">Current audit is clean. No high-priority items require immediate attention.</p>
+              </div>
             ) : (
-              <div className="flex items-center gap-4">
-                <div className="h-16 w-16 bg-gray-100 rounded flex items-center justify-center text-gray-400">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold">Vendor Score</p>
-                  <p className="text-3xl font-bold text-gray-800">{vendorRisk}</p>
-                </div>
+              <div className="space-y-3">
+                {topExceptions.map((ex, idx) => (
+                  <div
+                    key={`${ex.exception.type}-${idx}`}
+                    className="rounded-lg border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-950">{ex.exception.type}</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          Severity: <span className="font-semibold text-rose-600">{ex.exception.severity}</span>
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">Priority</p>
+                        <p className="mt-1 text-2xl font-semibold text-slate-950">{ex.finalPriorityScore}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
-          </div>
+          </Panel>
         </div>
-
       </div>
-    </main>
+    </PageShell>
   );
 }
