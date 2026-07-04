@@ -137,7 +137,7 @@ export class RiskScoreAggregator {
   /**
    * Applies configured weights to multiple predictor scores to generate a final predictive score.
    */
-  public aggregateScores(results: PredictorResult[], config: PredictiveRiskConfig): { finalScore: number, finalExposure: number } {
+  public aggregateScores(results: PredictorResult[], config: PredictiveRiskConfig): { finalScore: number } {
     const validResults = results.filter(r => 
       typeof r.score === 'number' && 
       !Number.isNaN(r.score) && 
@@ -147,7 +147,7 @@ export class RiskScoreAggregator {
     );
 
     if (validResults.length === 0) {
-      return { finalScore: 0, finalExposure: 0 };
+      return { finalScore: 0 };
     }
 
     let weightedScoreSum = 0;
@@ -173,12 +173,8 @@ export class RiskScoreAggregator {
 
     const finalScore = totalWeight > 0 ? (weightedScoreSum / totalWeight) : 0;
     
-    // Abstracted calculation placeholder
-    const finalExposure = 0; 
-
-    return { 
-      finalScore: Math.min(100, Math.max(0, finalScore)),
-      finalExposure 
+    return {
+      finalScore: Math.min(100, Math.max(0, finalScore))
     };
   }
 }

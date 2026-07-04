@@ -132,7 +132,7 @@ The V3 Baseline is backed by a 100% passing test suite across all layers.
 
 * **Build Validation**: Full `next build` optimization passes with no TypeScript errors.
 * **Regression Suite**: The unified PowerShell execution suite (`run_regression.ps1`) executes successfully.
-* **Predictor Calibration**: `multi_predictor_calibration.test.ts` validates that the risk scoring ensemble correctly balances dominant, zero-weight, high-risk, and low-risk signals without skewing.
+* **Predictor Calibration**: `calibration_test.ts` validates that the risk scoring ensemble correctly balances dominant, zero-weight, high-risk, and low-risk signals without skewing.
 * **Framework Hardening**: `framework_hardening.test.ts` guarantees resilience against NaN, Infinity, missing IDs, out-of-bounds scores, and mock exceptions.
 * **Intelligence Validation**: 
   - `vendor_intelligence.test.ts` (PASS)
