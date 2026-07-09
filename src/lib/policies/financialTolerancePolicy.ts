@@ -18,16 +18,18 @@ export class FinancialTolerancePolicy implements IAutonomousResolutionPolicy {
       };
     }
 
-    // Extract the original data to check tolerance
-    // Since ExceptionState doesn't store the raw values directly but refers to the transaction,
-    // we can look at the transaction payloads (if available) or assume they are stored in exception metadata.
-    // For this example, we'll check exceptionState.metadata for actual and expected values,
-    // or fallback to checking the transaction.
-    const metadata = exceptionState.metadata || {};
-    const actualPrice = metadata.actualPrice || 0;
-    const expectedPrice = metadata.expectedPrice || 0;
+    // Extract the original data to check tolerance from the canonical business data source
+    // (TransactionState) rather than duplicating data into ExceptionState metadata.
+    const invoicePayload = transactionState.invoicePayload?.data as any || {};
+    const poPayload = transactionState.purchaseOrderPayload?.data as any || {};
+    const grnPayload = transactionState.goodsReceiptPayload?.data as any || {};
+
+    const actualPrice = invoicePayload.unitPrice || invoicePayload.totalAmount || 0;
+    // We typically compare against the Purchase Order. If missing, fallback to GRN or 0.
+    const expectedPrice = poPayload.unitPrice || poPayload.totalAmount || grnPayload.unitPrice || grnPayload.totalAmount || 0;
 
     const diff = Math.abs(actualPrice - expectedPrice);
+
     
     // Strict deterministic rule: if the difference is <= $5.00, we resolve it.
     if (diff <= 5.00 && diff > 0) {
