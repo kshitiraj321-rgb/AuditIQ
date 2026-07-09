@@ -1,7 +1,9 @@
 import { IngestionPayload, TransactionState } from './types/continuous';
 import { IPersistenceAdapter, IEventOrchestrator } from './interfaces/continuousInterfaces';
-
+import { IExceptionLifecycleManager } from './interfaces/exceptionInterfaces';
 import { TransactionStagingService } from './services/transactionStagingService';
+import { matchDocuments } from './matcher';
+import { detectExceptions } from './exceptionEngine';
 
 /**
  * ContinuousOrchestrator coordinates the asynchronous staging of transactional streams.
@@ -11,7 +13,8 @@ import { TransactionStagingService } from './services/transactionStagingService'
 export class ContinuousOrchestrator implements IEventOrchestrator {
   constructor(
     private persistenceAdapter: IPersistenceAdapter,
-    private stagingService: TransactionStagingService
+    private stagingService: TransactionStagingService,
+    private exceptionLifecycleManager: IExceptionLifecycleManager
   ) {}
 
   public async processIncomingEvent(payload: IngestionPayload): Promise<void> {
@@ -57,9 +60,27 @@ export class ContinuousOrchestrator implements IEventOrchestrator {
 
     try {
       // At this boundary, the completely staged `TransactionState` is passed
-      // to the frozen V1/V3 intelligence engines. 
-      // The actual synchronous invocation of `matcher.ts` and `exceptionEngine.ts`
-      // will be wired up during the Intelligence Integration Unit (Unit 5).
+      // to the frozen V1/V3 intelligence engines.
+      
+      const purchaseOrderData = state.purchaseOrderPayload?.data as any || null;
+      const goodsReceiptData = state.goodsReceiptPayload?.data as any || null;
+      const vendorInvoiceData = state.invoicePayload?.data as any || null;
+
+      const matchResult = matchDocuments({
+        purchaseOrder: purchaseOrderData,
+        goodsReceiptNote: goodsReceiptData,
+        vendorInvoice: vendorInvoiceData
+      });
+
+      const exceptions = detectExceptions({
+        purchaseOrder: purchaseOrderData,
+        goodsReceiptNote: goodsReceiptData,
+        vendorInvoice: vendorInvoiceData,
+        matchResult
+      });
+
+      // Delegate exceptions to the V4 Exception Lifecycle Manager
+      await this.exceptionLifecycleManager.handleDetectedExceptions(exceptions, state);
       
       // Transition state post-intelligence processing
       state.status = 'PROCESSED';
