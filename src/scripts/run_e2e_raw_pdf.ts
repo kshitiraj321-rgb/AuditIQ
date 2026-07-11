@@ -16,6 +16,7 @@ import { IPersistenceAdapter } from '../lib/interfaces/continuousInterfaces';
 import { IExceptionRepository } from '../lib/interfaces/exceptionInterfaces';
 import { TransactionState, IdempotencyKey, IngestionPayload } from '../lib/types/continuous';
 import { ExceptionState, AuditLogEntry, PolicyDecision } from '../lib/types/exceptionLifecycle';
+import { bootstrapPersistence } from '../lib/persistence/bootstrap';
 
 // --- MOCKS ---
 class InMemoryPersistenceAdapter implements IPersistenceAdapter {
@@ -43,35 +44,7 @@ class InMemoryPersistenceAdapter implements IPersistenceAdapter {
   }
 }
 
-class InMemoryExceptionRepository implements IExceptionRepository {
-  private exceptions = new Map<string, ExceptionState>();
-  public logs: { exceptionId: string, log: AuditLogEntry }[] = [];
 
-  async save(state: ExceptionState): Promise<void> {
-    this.exceptions.set(state.id, { ...state });
-  }
-
-  async getById(id: string): Promise<ExceptionState | null> {
-    return this.exceptions.get(id) || null;
-  }
-
-  async getByTransactionId(transactionId: string): Promise<ExceptionState[]> {
-    return Array.from(this.exceptions.values()).filter(ex => ex.transactionId === transactionId);
-  }
-
-  async appendAuditLog(exceptionId: string, log: AuditLogEntry): Promise<void> {
-    const ex = this.exceptions.get(exceptionId);
-    if (ex) {
-      ex.auditTrail.push(log);
-      this.exceptions.set(exceptionId, ex);
-    }
-    this.logs.push({ exceptionId, log });
-  }
-
-  getAllExceptions() {
-    return Array.from(this.exceptions.values());
-  }
-}
 
 // --- E2E RUNNER ---
 
@@ -166,11 +139,40 @@ async function runValidation() {
       const startTime = Date.now();
       
       const persistenceAdapter = new InMemoryPersistenceAdapter();
-      const exceptionRepository = new InMemoryExceptionRepository();
+      
+      const bootstrapResult = bootstrapPersistence(':memory:');
+      if (iter === 1) {
+        console.log('Persistence Diagnostics:', JSON.stringify({
+          initialized: bootstrapResult.providerInitialized,
+          fallback: bootstrapResult.fallbackUsed,
+          mode: bootstrapResult.repositoryMode,
+          path: bootstrapResult.databasePath,
+          integrity: bootstrapResult.integrityStatus
+        }));
+      }
+
+      const auditRepo = bootstrapResult.getAuditSessionRepository();
+      const exceptionRepository = bootstrapResult.getExceptionRepository();
+      
       const stagingService = new TransactionStagingService();
       const policyEngine = new PolicyEngine([new FinancialTolerancePolicy()]);
       const lifecycleManager = new ExceptionLifecycleManager(policyEngine, exceptionRepository);
-      const orchestrator = new ContinuousOrchestrator(persistenceAdapter, stagingService, lifecycleManager);
+      
+      const auditSessionId = `mock-audit-session-${scenario.id}`;
+      await auditRepo.save({
+        id: auditSessionId,
+        timestamp: new Date().toISOString(),
+        analysisVersion: 'v4',
+        persistenceVersion: '1',
+        status: 'RUNNING'
+      });
+      
+      // Override the orchestrator with our patched session ID to properly link exceptions
+      const orchestrator = new ContinuousOrchestrator(persistenceAdapter, stagingService, {
+        handleDetectedExceptions: async (exceptions: any, state: any) => {
+          return lifecycleManager.handleDetectedExceptions(exceptions, state, auditSessionId);
+        }
+      } as any);
 
       const transactionId = `TX-${scenario.id}`;
       const iterSnapshots: any = { iteration: iter, stages: {} };
@@ -225,7 +227,7 @@ async function runValidation() {
       
       const finalState = await persistenceAdapter.getTransactionState(transactionId);
       const exceptions = await exceptionRepository.getByTransactionId(transactionId);
-      const allExceptions = exceptionRepository.getAllExceptions(); 
+      const allExceptions = await exceptionRepository.getByAuditSessionId(auditSessionId);
 
       iterSnapshots.finalState = finalState;
       iterSnapshots.exceptions = exceptions.length > 0 ? exceptions : allExceptions;
@@ -237,6 +239,11 @@ async function runValidation() {
         scenarioSnapshots.push(iterSnapshots);
         metrics[scenario.id] = { durationMs: Date.now() - startTime };
       }
+      
+      if (bootstrapResult.provider) {
+        bootstrapResult.provider.close();
+      }
+
     }
 
     if (hashes.size !== 1) {

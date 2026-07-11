@@ -12,6 +12,7 @@ import { IExceptionRepository } from '../lib/interfaces/exceptionInterfaces';
 import { TransactionState, IdempotencyKey, IngestionPayload } from '../lib/types/continuous';
 import { ExceptionState, AuditLogEntry } from '../lib/types/exceptionLifecycle';
 import { detectExceptions } from '../lib/exceptionEngine';
+import { bootstrapPersistence } from '../lib/persistence/bootstrap';
 
 class InMemoryPersistenceAdapter implements IPersistenceAdapter {
   private transactions = new Map<string, TransactionState>();
@@ -39,34 +40,7 @@ class InMemoryPersistenceAdapter implements IPersistenceAdapter {
   }
 }
 
-class InMemoryExceptionRepository implements IExceptionRepository {
-  private exceptions = new Map<string, ExceptionState>();
 
-  async save(state: ExceptionState): Promise<void> {
-    this.exceptions.set(state.id, { ...state });
-  }
-
-  async getById(id: string): Promise<ExceptionState | null> {
-    return this.exceptions.get(id) || null;
-  }
-
-  async getByTransactionId(transactionId: string): Promise<ExceptionState[]> {
-    return Array.from(this.exceptions.values()).filter(ex => ex.transactionId === transactionId);
-  }
-
-  async appendAuditLog(exceptionId: string, log: AuditLogEntry): Promise<void> {
-    const ex = this.exceptions.get(exceptionId);
-    if (ex) {
-      ex.auditTrail.push(log);
-      this.exceptions.set(exceptionId, ex);
-    }
-  }
-
-  // Helper for testing
-  getAllExceptions() {
-    return Array.from(this.exceptions.values());
-  }
-}
 
 async function runValidation() {
   console.log("=========================================");
@@ -74,11 +48,31 @@ async function runValidation() {
   console.log("=========================================\n");
 
   const persistenceAdapter = new InMemoryPersistenceAdapter();
-  const exceptionRepository = new InMemoryExceptionRepository();
+  
+  const bootstrapResult = bootstrapPersistence(path.join(__dirname, '../../test_validation.db'));
+  console.log('Persistence Diagnostics:', JSON.stringify({
+    initialized: bootstrapResult.providerInitialized,
+    fallback: bootstrapResult.fallbackUsed,
+    mode: bootstrapResult.repositoryMode,
+    path: bootstrapResult.databasePath,
+    integrity: bootstrapResult.integrityStatus
+  }, null, 2));
+
+  const auditRepo = bootstrapResult.getAuditSessionRepository();
+  const exceptionRepository = bootstrapResult.getExceptionRepository();
   const stagingService = new TransactionStagingService();
   
   const policyEngine = new PolicyEngine([new FinancialTolerancePolicy()]);
   const lifecycleManager = new ExceptionLifecycleManager(policyEngine, exceptionRepository);
+  
+  // Create an audit session for the validation run
+  await auditRepo.save({
+    id: 'mock-audit-session-123',
+    timestamp: new Date().toISOString(),
+    analysisVersion: 'v4',
+    persistenceVersion: '1',
+    status: 'RUNNING'
+  });
   
   const orchestrator = new ContinuousOrchestrator(persistenceAdapter, stagingService, lifecycleManager);
 
@@ -229,7 +223,7 @@ async function runValidation() {
         invoicePayload: { data: scenario.inv } as any,
       };
       
-      await lifecycleManager.handleDetectedExceptions(exceptionsForDup, dupState);
+      await lifecycleManager.handleDetectedExceptions(exceptionsForDup, dupState, 'mock-audit-session-123');
     }
 
     // Evaluate Results

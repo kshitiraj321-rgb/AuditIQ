@@ -80,7 +80,7 @@ export class ContinuousOrchestrator implements IEventOrchestrator {
       });
 
       // Delegate exceptions to the V4 Exception Lifecycle Manager
-      await this.exceptionLifecycleManager.handleDetectedExceptions(exceptions, state);
+      await this.exceptionLifecycleManager.handleDetectedExceptions(exceptions, state, 'mock-audit-session-123');
       
       // Transition state post-intelligence processing
       state.status = 'PROCESSED';

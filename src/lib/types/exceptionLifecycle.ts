@@ -20,8 +20,21 @@ export interface AuditLogEntry {
   policyVersion?: string;
 }
 
+export type AuditSessionStatus = 'CREATED' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+
+export interface IAuditSession {
+  id: string;
+  timestamp: string;
+  analysisVersion: string;
+  persistenceVersion: string;
+  status: AuditSessionStatus;
+  inputFingerprint?: string;
+  metadata?: Record<string, any>;
+}
+
 export interface ExceptionState {
   id: string;
+  auditSessionId: string;
   transactionId: string;
   type: DetectedException['type'];
   status: ExceptionStatus;

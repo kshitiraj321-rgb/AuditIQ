@@ -83,7 +83,7 @@
         "finalState": {
           "transactionId": "TX-VAL-001",
           "status": "PROCESSED",
-          "lastUpdated": "2026-07-09T22:36:13.314Z",
+          "lastUpdated": "2026-07-11T20:00:59.054Z",
           "idempotencyKeys": [
             "idempotency-TX-VAL-001-01_perfect_match_po.pdf",
             "idempotency-TX-VAL-001-02_perfect_match_grn.pdf",
@@ -92,7 +92,7 @@
           "purchaseOrderPayload": {
             "idempotencyKey": "idempotency-TX-VAL-001-01_perfect_match_po.pdf",
             "sourceSystem": "FILE_UPLOAD",
-            "timestamp": "2026-07-09T22:36:13.204Z",
+            "timestamp": "2026-07-11T20:00:58.988Z",
             "payloadType": "PURCHASE_ORDER",
             "data": {
               "transactionId": "TX-VAL-001",
@@ -113,7 +113,7 @@
           "goodsReceiptPayload": {
             "idempotencyKey": "idempotency-TX-VAL-001-02_perfect_match_grn.pdf",
             "sourceSystem": "FILE_UPLOAD",
-            "timestamp": "2026-07-09T22:36:13.255Z",
+            "timestamp": "2026-07-11T20:00:59.021Z",
             "payloadType": "GOODS_RECEIPT",
             "data": {
               "transactionId": "TX-VAL-001",
@@ -134,7 +134,7 @@
           "invoicePayload": {
             "idempotencyKey": "idempotency-TX-VAL-001-03_perfect_match_inv.pdf",
             "sourceSystem": "FILE_UPLOAD",
-            "timestamp": "2026-07-09T22:36:13.305Z",
+            "timestamp": "2026-07-11T20:00:59.051Z",
             "payloadType": "INVOICE",
             "data": {
               "transactionId": "TX-VAL-001",
@@ -155,25 +155,21 @@
         },
         "exceptions": [
           {
-            "id": "EXC-TX-VAL-001-1783636573307-pwrch",
+            "id": "EXC-TX-VAL-001-1783800059052-hi48m",
+            "auditSessionId": "mock-audit-session-VAL-001",
             "transactionId": "TX-VAL-001",
             "type": "Quantity Mismatch",
             "status": "IGNORED",
+            "severity": "High",
             "auditTrail": [
               {
-                "timestamp": "2026-07-09T22:36:13.307Z",
+                "timestamp": "2026-07-11T20:00:59.052Z",
                 "action": "CREATED",
                 "actor": "SYSTEM",
                 "reason": "Detected by V1 exception engine"
               },
               {
-                "timestamp": "2026-07-09T22:36:13.307Z",
-                "action": "CREATED",
-                "actor": "SYSTEM",
-                "reason": "Detected by V1 exception engine"
-              },
-              {
-                "timestamp": "2026-07-09T22:36:13.311Z",
+                "timestamp": "2026-07-11T20:00:59.054Z",
                 "action": "TRANSITION_TO_IGNORED",
                 "actor": "POLICY_ENGINE",
                 "reason": "Policy only applies to Price Variance exceptions.",
@@ -181,7 +177,7 @@
                 "policyVersion": "1.0.0"
               },
               {
-                "timestamp": "2026-07-09T22:36:13.311Z",
+                "timestamp": "2026-07-11T20:00:59.054Z",
                 "action": "TRANSITION_TO_IGNORED",
                 "actor": "POLICY_ENGINE",
                 "reason": "Policy only applies to Price Variance exceptions.",
@@ -189,29 +185,24 @@
                 "policyVersion": "1.0.0"
               }
             ],
-            "severity": "High",
             "metadata": {}
           },
           {
-            "id": "EXC-TX-VAL-001-1783636573311-q61iq",
+            "id": "EXC-TX-VAL-001-1783800059054-5qc5k",
+            "auditSessionId": "mock-audit-session-VAL-001",
             "transactionId": "TX-VAL-001",
             "type": "Price Variance",
             "status": "UNDER_REVIEW",
+            "severity": "High",
             "auditTrail": [
               {
-                "timestamp": "2026-07-09T22:36:13.312Z",
+                "timestamp": "2026-07-11T20:00:59.054Z",
                 "action": "CREATED",
                 "actor": "SYSTEM",
                 "reason": "Detected by V1 exception engine"
               },
               {
-                "timestamp": "2026-07-09T22:36:13.312Z",
-                "action": "CREATED",
-                "actor": "SYSTEM",
-                "reason": "Detected by V1 exception engine"
-              },
-              {
-                "timestamp": "2026-07-09T22:36:13.314Z",
+                "timestamp": "2026-07-11T20:00:59.054Z",
                 "action": "TRANSITION_TO_UNDER_REVIEW",
                 "actor": "POLICY_ENGINE",
                 "reason": "Price variance of $120.00 exceeds the $5.00 automated tolerance limit.",
@@ -219,7 +210,7 @@
                 "policyVersion": "1.0.0"
               },
               {
-                "timestamp": "2026-07-09T22:36:13.314Z",
+                "timestamp": "2026-07-11T20:00:59.054Z",
                 "action": "TRANSITION_TO_UNDER_REVIEW",
                 "actor": "POLICY_ENGINE",
                 "reason": "Price variance of $120.00 exceeds the $5.00 automated tolerance limit.",
@@ -227,7 +218,6 @@
                 "policyVersion": "1.0.0"
               }
             ],
-            "severity": "High",
             "metadata": {}
           }
         ]
@@ -316,7 +306,7 @@
         "finalState": {
           "transactionId": "TX-VAL-004",
           "status": "PROCESSED",
-          "lastUpdated": "2026-07-09T22:36:14.443Z",
+          "lastUpdated": "2026-07-11T20:00:59.472Z",
           "idempotencyKeys": [
             "idempotency-TX-VAL-004-04_quantity_mismatch_po.pdf",
             "idempotency-TX-VAL-004-05_quantity_mismatch_grn.pdf",
@@ -325,7 +315,7 @@
           "purchaseOrderPayload": {
             "idempotencyKey": "idempotency-TX-VAL-004-04_quantity_mismatch_po.pdf",
             "sourceSystem": "FILE_UPLOAD",
-            "timestamp": "2026-07-09T22:36:14.355Z",
+            "timestamp": "2026-07-11T20:00:59.424Z",
             "payloadType": "PURCHASE_ORDER",
             "data": {
               "transactionId": "TX-VAL-004",
@@ -346,7 +336,7 @@
           "goodsReceiptPayload": {
             "idempotencyKey": "idempotency-TX-VAL-004-05_quantity_mismatch_grn.pdf",
             "sourceSystem": "FILE_UPLOAD",
-            "timestamp": "2026-07-09T22:36:14.401Z",
+            "timestamp": "2026-07-11T20:00:59.452Z",
             "payloadType": "GOODS_RECEIPT",
             "data": {
               "transactionId": "TX-VAL-004",
@@ -367,7 +357,7 @@
           "invoicePayload": {
             "idempotencyKey": "idempotency-TX-VAL-004-06_quantity_mismatch_inv.pdf",
             "sourceSystem": "FILE_UPLOAD",
-            "timestamp": "2026-07-09T22:36:14.443Z",
+            "timestamp": "2026-07-11T20:00:59.471Z",
             "payloadType": "INVOICE",
             "data": {
               "transactionId": "TX-VAL-004",
@@ -388,25 +378,21 @@
         },
         "exceptions": [
           {
-            "id": "EXC-TX-VAL-004-1783636574443-j7syd",
+            "id": "EXC-TX-VAL-004-1783800059471-2iied",
+            "auditSessionId": "mock-audit-session-VAL-004",
             "transactionId": "TX-VAL-004",
             "type": "Quantity Mismatch",
             "status": "IGNORED",
+            "severity": "High",
             "auditTrail": [
               {
-                "timestamp": "2026-07-09T22:36:14.443Z",
+                "timestamp": "2026-07-11T20:00:59.471Z",
                 "action": "CREATED",
                 "actor": "SYSTEM",
                 "reason": "Detected by V1 exception engine"
               },
               {
-                "timestamp": "2026-07-09T22:36:14.443Z",
-                "action": "CREATED",
-                "actor": "SYSTEM",
-                "reason": "Detected by V1 exception engine"
-              },
-              {
-                "timestamp": "2026-07-09T22:36:14.443Z",
+                "timestamp": "2026-07-11T20:00:59.471Z",
                 "action": "TRANSITION_TO_IGNORED",
                 "actor": "POLICY_ENGINE",
                 "reason": "Policy only applies to Price Variance exceptions.",
@@ -414,7 +400,7 @@
                 "policyVersion": "1.0.0"
               },
               {
-                "timestamp": "2026-07-09T22:36:14.443Z",
+                "timestamp": "2026-07-11T20:00:59.471Z",
                 "action": "TRANSITION_TO_IGNORED",
                 "actor": "POLICY_ENGINE",
                 "reason": "Policy only applies to Price Variance exceptions.",
@@ -422,29 +408,24 @@
                 "policyVersion": "1.0.0"
               }
             ],
-            "severity": "High",
             "metadata": {}
           },
           {
-            "id": "EXC-TX-VAL-004-1783636574443-r0ufk",
+            "id": "EXC-TX-VAL-004-1783800059471-566ce",
+            "auditSessionId": "mock-audit-session-VAL-004",
             "transactionId": "TX-VAL-004",
             "type": "Price Variance",
             "status": "UNDER_REVIEW",
+            "severity": "High",
             "auditTrail": [
               {
-                "timestamp": "2026-07-09T22:36:14.443Z",
+                "timestamp": "2026-07-11T20:00:59.471Z",
                 "action": "CREATED",
                 "actor": "SYSTEM",
                 "reason": "Detected by V1 exception engine"
               },
               {
-                "timestamp": "2026-07-09T22:36:14.443Z",
-                "action": "CREATED",
-                "actor": "SYSTEM",
-                "reason": "Detected by V1 exception engine"
-              },
-              {
-                "timestamp": "2026-07-09T22:36:14.443Z",
+                "timestamp": "2026-07-11T20:00:59.472Z",
                 "action": "TRANSITION_TO_UNDER_REVIEW",
                 "actor": "POLICY_ENGINE",
                 "reason": "Price variance of $120.00 exceeds the $5.00 automated tolerance limit.",
@@ -452,7 +433,7 @@
                 "policyVersion": "1.0.0"
               },
               {
-                "timestamp": "2026-07-09T22:36:14.443Z",
+                "timestamp": "2026-07-11T20:00:59.472Z",
                 "action": "TRANSITION_TO_UNDER_REVIEW",
                 "actor": "POLICY_ENGINE",
                 "reason": "Price variance of $120.00 exceeds the $5.00 automated tolerance limit.",
@@ -460,7 +441,6 @@
                 "policyVersion": "1.0.0"
               }
             ],
-            "severity": "High",
             "metadata": {}
           }
         ]
@@ -549,7 +529,7 @@
         "finalState": {
           "transactionId": "TX-VAL-006",
           "status": "PROCESSED",
-          "lastUpdated": "2026-07-09T22:36:15.420Z",
+          "lastUpdated": "2026-07-11T20:00:59.770Z",
           "idempotencyKeys": [
             "idempotency-TX-VAL-006-07_price_variance_po.pdf",
             "idempotency-TX-VAL-006-08_price_variance_grn.pdf",
@@ -558,7 +538,7 @@
           "purchaseOrderPayload": {
             "idempotencyKey": "idempotency-TX-VAL-006-07_price_variance_po.pdf",
             "sourceSystem": "FILE_UPLOAD",
-            "timestamp": "2026-07-09T22:36:15.349Z",
+            "timestamp": "2026-07-11T20:00:59.730Z",
             "payloadType": "PURCHASE_ORDER",
             "data": {
               "transactionId": "TX-VAL-006",
@@ -579,7 +559,7 @@
           "goodsReceiptPayload": {
             "idempotencyKey": "idempotency-TX-VAL-006-08_price_variance_grn.pdf",
             "sourceSystem": "FILE_UPLOAD",
-            "timestamp": "2026-07-09T22:36:15.385Z",
+            "timestamp": "2026-07-11T20:00:59.750Z",
             "payloadType": "GOODS_RECEIPT",
             "data": {
               "transactionId": "TX-VAL-006",
@@ -600,7 +580,7 @@
           "invoicePayload": {
             "idempotencyKey": "idempotency-TX-VAL-006-09_price_variance_inv.pdf",
             "sourceSystem": "FILE_UPLOAD",
-            "timestamp": "2026-07-09T22:36:15.419Z",
+            "timestamp": "2026-07-11T20:00:59.769Z",
             "payloadType": "INVOICE",
             "data": {
               "transactionId": "TX-VAL-006",
@@ -621,25 +601,21 @@
         },
         "exceptions": [
           {
-            "id": "EXC-TX-VAL-006-1783636575420-i6y5a",
+            "id": "EXC-TX-VAL-006-1783800059769-rgvl6",
+            "auditSessionId": "mock-audit-session-VAL-006",
             "transactionId": "TX-VAL-006",
             "type": "Quantity Mismatch",
             "status": "IGNORED",
+            "severity": "High",
             "auditTrail": [
               {
-                "timestamp": "2026-07-09T22:36:15.420Z",
+                "timestamp": "2026-07-11T20:00:59.769Z",
                 "action": "CREATED",
                 "actor": "SYSTEM",
                 "reason": "Detected by V1 exception engine"
               },
               {
-                "timestamp": "2026-07-09T22:36:15.420Z",
-                "action": "CREATED",
-                "actor": "SYSTEM",
-                "reason": "Detected by V1 exception engine"
-              },
-              {
-                "timestamp": "2026-07-09T22:36:15.420Z",
+                "timestamp": "2026-07-11T20:00:59.770Z",
                 "action": "TRANSITION_TO_IGNORED",
                 "actor": "POLICY_ENGINE",
                 "reason": "Policy only applies to Price Variance exceptions.",
@@ -647,7 +623,7 @@
                 "policyVersion": "1.0.0"
               },
               {
-                "timestamp": "2026-07-09T22:36:15.420Z",
+                "timestamp": "2026-07-11T20:00:59.770Z",
                 "action": "TRANSITION_TO_IGNORED",
                 "actor": "POLICY_ENGINE",
                 "reason": "Policy only applies to Price Variance exceptions.",
@@ -655,29 +631,24 @@
                 "policyVersion": "1.0.0"
               }
             ],
-            "severity": "High",
             "metadata": {}
           },
           {
-            "id": "EXC-TX-VAL-006-1783636575420-af0d6",
+            "id": "EXC-TX-VAL-006-1783800059770-vn5h4",
+            "auditSessionId": "mock-audit-session-VAL-006",
             "transactionId": "TX-VAL-006",
             "type": "Price Variance",
             "status": "UNDER_REVIEW",
+            "severity": "High",
             "auditTrail": [
               {
-                "timestamp": "2026-07-09T22:36:15.420Z",
+                "timestamp": "2026-07-11T20:00:59.770Z",
                 "action": "CREATED",
                 "actor": "SYSTEM",
                 "reason": "Detected by V1 exception engine"
               },
               {
-                "timestamp": "2026-07-09T22:36:15.420Z",
-                "action": "CREATED",
-                "actor": "SYSTEM",
-                "reason": "Detected by V1 exception engine"
-              },
-              {
-                "timestamp": "2026-07-09T22:36:15.420Z",
+                "timestamp": "2026-07-11T20:00:59.770Z",
                 "action": "TRANSITION_TO_UNDER_REVIEW",
                 "actor": "POLICY_ENGINE",
                 "reason": "Price variance of $120.00 exceeds the $5.00 automated tolerance limit.",
@@ -685,7 +656,7 @@
                 "policyVersion": "1.0.0"
               },
               {
-                "timestamp": "2026-07-09T22:36:15.420Z",
+                "timestamp": "2026-07-11T20:00:59.770Z",
                 "action": "TRANSITION_TO_UNDER_REVIEW",
                 "actor": "POLICY_ENGINE",
                 "reason": "Price variance of $120.00 exceeds the $5.00 automated tolerance limit.",
@@ -693,7 +664,6 @@
                 "policyVersion": "1.0.0"
               }
             ],
-            "severity": "High",
             "metadata": {}
           }
         ]
@@ -814,7 +784,7 @@
         "finalState": {
           "transactionId": "TX-VAL-005",
           "status": "PROCESSED",
-          "lastUpdated": "2026-07-09T22:36:17.187Z",
+          "lastUpdated": "2026-07-11T20:01:00.290Z",
           "idempotencyKeys": [
             "idempotency-TX-VAL-005-14_duplicate_invoice_inv.pdf",
             "idempotency-TX-VAL-005-15_duplicate_invoice_invcopy.pdf"
@@ -822,7 +792,7 @@
           "invoicePayload": {
             "idempotencyKey": "idempotency-TX-VAL-005-15_duplicate_invoice_invcopy.pdf",
             "sourceSystem": "FILE_UPLOAD",
-            "timestamp": "2026-07-09T22:36:17.187Z",
+            "timestamp": "2026-07-11T20:01:00.289Z",
             "payloadType": "INVOICE",
             "data": {
               "transactionId": "TX-VAL-005",
@@ -843,25 +813,21 @@
         },
         "exceptions": [
           {
-            "id": "EXC-TX-VAL-005-1783636577187-7eims",
+            "id": "EXC-TX-VAL-005-1783800060289-g991c",
+            "auditSessionId": "mock-audit-session-VAL-005",
             "transactionId": "TX-VAL-005",
             "type": "Missing Purchase Order",
             "status": "IGNORED",
+            "severity": "High",
             "auditTrail": [
               {
-                "timestamp": "2026-07-09T22:36:17.187Z",
+                "timestamp": "2026-07-11T20:01:00.289Z",
                 "action": "CREATED",
                 "actor": "SYSTEM",
                 "reason": "Detected by V1 exception engine"
               },
               {
-                "timestamp": "2026-07-09T22:36:17.187Z",
-                "action": "CREATED",
-                "actor": "SYSTEM",
-                "reason": "Detected by V1 exception engine"
-              },
-              {
-                "timestamp": "2026-07-09T22:36:17.187Z",
+                "timestamp": "2026-07-11T20:01:00.290Z",
                 "action": "TRANSITION_TO_IGNORED",
                 "actor": "POLICY_ENGINE",
                 "reason": "Policy only applies to Price Variance exceptions.",
@@ -869,7 +835,7 @@
                 "policyVersion": "1.0.0"
               },
               {
-                "timestamp": "2026-07-09T22:36:17.187Z",
+                "timestamp": "2026-07-11T20:01:00.290Z",
                 "action": "TRANSITION_TO_IGNORED",
                 "actor": "POLICY_ENGINE",
                 "reason": "Policy only applies to Price Variance exceptions.",
@@ -877,7 +843,6 @@
                 "policyVersion": "1.0.0"
               }
             ],
-            "severity": "High",
             "metadata": {}
           }
         ]
@@ -886,19 +851,19 @@
   },
   "metrics": {
     "VAL-001": {
-      "durationMs": 2609
+      "durationMs": 1144
     },
     "VAL-004": {
-      "durationMs": 122
+      "durationMs": 68
     },
     "VAL-006": {
-      "durationMs": 110
+      "durationMs": 60
     },
     "VAL-002": {
-      "durationMs": 156
+      "durationMs": 40
     },
     "VAL-005": {
-      "durationMs": 132
+      "durationMs": 88
     }
   }
 }

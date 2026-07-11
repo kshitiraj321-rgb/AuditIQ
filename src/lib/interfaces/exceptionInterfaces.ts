@@ -3,7 +3,8 @@ import {
   PolicyEvaluationContext, 
   PolicyDecision, 
   PolicyEvaluationResult,
-  AuditLogEntry
+  AuditLogEntry,
+  IAuditSession
 } from '../types/exceptionLifecycle';
 
 /**
@@ -31,7 +32,13 @@ export interface IExceptionRepository {
   save(state: ExceptionState): Promise<void>;
   getById(id: string): Promise<ExceptionState | null>;
   getByTransactionId(transactionId: string): Promise<ExceptionState[]>;
+  getByAuditSessionId(auditSessionId: string): Promise<ExceptionState[]>;
   appendAuditLog(exceptionId: string, log: AuditLogEntry): Promise<void>;
+}
+
+export interface IAuditSessionRepository {
+  save(session: IAuditSession): Promise<void>;
+  getById(id: string): Promise<IAuditSession | null>;
 }
 
 import { TransactionState } from '../types/continuous';
@@ -43,5 +50,5 @@ import { DetectedException } from '../exceptionEngine';
  */
 export interface IExceptionLifecycleManager {
   processException(exceptionState: ExceptionState, context: Omit<PolicyEvaluationContext, 'exceptionState'>): Promise<ExceptionState>;
-  handleDetectedExceptions(exceptions: DetectedException[], transactionState: TransactionState): Promise<ExceptionState[]>;
+  handleDetectedExceptions(exceptions: DetectedException[], transactionState: TransactionState, auditSessionId: string): Promise<ExceptionState[]>;
 }

@@ -19,14 +19,16 @@ export class ExceptionLifecycleManager implements IExceptionLifecycleManager {
     private readonly repository: IExceptionRepository
   ) {}
 
-  public async handleDetectedExceptions(exceptions: DetectedException[], transactionState: TransactionState): Promise<ExceptionState[]> {
+  public async handleDetectedExceptions(
+    exceptions: DetectedException[],
+    transactionState: TransactionState,
+    auditSessionId: string
+  ): Promise<ExceptionState[]> {
     if (exceptions.length === 0) {
-      return [];
-    }
-
-    // Idempotency check: if exceptions already exist for this transaction, abort processing safely.
-    const existingExceptions = await this.repository.getByTransactionId(transactionState.transactionId);
-    if (existingExceptions && existingExceptions.length > 0) {
+      // No exceptions, check if there's any existing state we need to resolve
+      const existingExceptions = await this.repository.getByTransactionId(transactionState.transactionId);
+      // For now, assume if there are no new exceptions, we don't automatically resolve old ones
+      // unless an explicit policy dictates it.
       // Safely terminate without mutating state.
       return existingExceptions;
     }
@@ -45,6 +47,7 @@ export class ExceptionLifecycleManager implements IExceptionLifecycleManager {
 
       const initialState: ExceptionState = {
         id: exceptionId,
+        auditSessionId,
         transactionId: transactionState.transactionId,
         type: ex.type,
         status: 'OPEN',
