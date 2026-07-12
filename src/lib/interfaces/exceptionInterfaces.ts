@@ -6,6 +6,7 @@ import {
   AuditLogEntry,
   IAuditSession
 } from '../types/exceptionLifecycle';
+import { ExceptionResolution } from '../types';
 
 /**
  * Pure functional policy that returns a deterministic decision based on an immutable context.
@@ -51,4 +52,5 @@ import { DetectedException } from '../exceptionEngine';
 export interface IExceptionLifecycleManager {
   processException(exceptionState: ExceptionState, context: Omit<PolicyEvaluationContext, 'exceptionState'>): Promise<ExceptionState>;
   handleDetectedExceptions(exceptions: DetectedException[], transactionState: TransactionState, auditSessionId: string): Promise<ExceptionState[]>;
+  resolveException(exceptionId: string, actor: string, resolutionType: string, notes: string): Promise<ExceptionResolution>;
 }

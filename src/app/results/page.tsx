@@ -131,7 +131,7 @@ function readAnalysisFromStorage(): AnalysisResult | null {
 // ─────────────────────────────────────────────
 
 function fmt(n: number) {
-  return `₹${n.toLocaleString("en-IN")}`;
+  return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 }
 
 const EXCEPTION_KEYWORDS: Record<string, string[]> = {
@@ -403,7 +403,7 @@ function DocumentCard({
 
       <div className="mt-3 grid gap-2">
         {field("Quantity", doc.quantity, highlightQty, "quantity")}
-        {field("Unit", `₹${doc.unitPrice}`, highlightPrice, "unitPrice")}
+        {field("Unit", fmt(doc.unitPrice), highlightPrice, "unitPrice")}
         {field("Amount", fmt(doc.amount), highlightAmount, "amount")}
       </div>
       {status?.mode === "fallback" && status.reason && (
@@ -660,7 +660,7 @@ export default function ResultsPage() {
                         </Tag>
                         {prioritizedQueue && prioritizedQueue[idx] ? (
                           <span className="text-xs font-semibold text-slate-500">
-                            Score {prioritizedQueue[idx].finalPriorityScore}
+                            Score {typeof prioritizedQueue[idx].finalPriorityScore === 'number' ? Number(prioritizedQueue[idx].finalPriorityScore.toFixed(1)) : prioritizedQueue[idx].finalPriorityScore}
                           </span>
                         ) : null}
                       </div>
@@ -689,7 +689,7 @@ export default function ResultsPage() {
                     {selected.severity}
                   </Tag>
                   {prioritizedQueue && prioritizedQueue[selectedIdx] ? (
-                    <Tag tone="slate">Priority {prioritizedQueue[selectedIdx].finalPriorityScore}</Tag>
+                    <Tag tone="slate">Priority {typeof prioritizedQueue[selectedIdx].finalPriorityScore === 'number' ? Number(prioritizedQueue[selectedIdx].finalPriorityScore.toFixed(1)) : prioritizedQueue[selectedIdx].finalPriorityScore}</Tag>
                   ) : null}
                   {exceptionRisks ? (
                     <Tag tone="default">

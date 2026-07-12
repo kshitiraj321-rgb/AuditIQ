@@ -12,6 +12,7 @@ import {
 } from '../types/exceptionLifecycle';
 import { DetectedException } from '../exceptionEngine';
 import { TransactionState } from '../types/continuous';
+import { ExceptionResolution } from '../types';
 
 export class ExceptionLifecycleManager implements IExceptionLifecycleManager {
   constructor(
@@ -147,10 +148,34 @@ export class ExceptionLifecycleManager implements IExceptionLifecycleManager {
     return exceptionState;
   }
 
-  private isValidTransition(current: ExceptionStatus, target: ExceptionStatus): boolean {
-    if (current === target) return true; // Self-transitions or no-ops are fine
-    const allowed = LegalStateTransitions[current] || [];
-    return allowed.includes(target);
+  private isValidTransition(current: ExceptionStatus, next: ExceptionStatus): boolean {
+    const validNextStates = LegalStateTransitions[current] || [];
+    return validNextStates.includes(next);
+  }
+
+  public async resolveException(exceptionId: string, actor: string, resolutionType: string, notes: string): Promise<ExceptionResolution> {
+    const exception = await this.repository.getById(exceptionId);
+    if (!exception) throw new Error(`Exception ${exceptionId} not found`);
+
+    const log: AuditLogEntry = {
+      timestamp: new Date().toISOString(),
+      action: 'AUTO_RESOLVED',
+      actor,
+      reason: notes
+    };
+
+    exception.status = 'RESOLVED';
+    await this.repository.save(exception);
+    await this.repository.appendAuditLog(exceptionId, log);
+
+    return {
+      exceptionId,
+      transactionId: exception.transactionId,
+      resolutionType,
+      resolvedAt: log.timestamp,
+      resolvedBy: actor,
+      notes
+    };
   }
 
   private mapDecisionToStatus(decision: string): ExceptionStatus {

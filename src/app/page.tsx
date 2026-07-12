@@ -97,6 +97,7 @@ function normalizeAnalysis(parsedAnalysis: Partial<DashboardAnalysis> | null): D
     prioritizedQueue: Array.isArray(parsedAnalysis?.prioritizedQueue)
       ? parsedAnalysis.prioritizedQueue
       : [],
+    extractedData: parsedAnalysis?.extractedData,
   };
 }
 
@@ -409,7 +410,7 @@ export default function Home() {
                       </div>
                       <div className="text-right">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">Priority</p>
-                        <p className="mt-1 text-2xl font-semibold text-slate-950">{ex.finalPriorityScore}</p>
+                        <p className="mt-1 text-2xl font-semibold text-slate-950">{typeof ex.finalPriorityScore === 'number' ? Number(ex.finalPriorityScore.toFixed(1)) : ex.finalPriorityScore}</p>
                       </div>
                     </div>
                   </div>
