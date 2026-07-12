@@ -122,7 +122,7 @@ function generateHash(data: any): string {
 }
 
 async function runValidation() {
-  const testDataDir = path.resolve(__dirname, '../../test-data');
+  const testDataDir = path.resolve(__dirname, '../../validation/datasets');
   const snapshots: Record<string, any[]> = {};
   const metrics: Record<string, any> = {};
 

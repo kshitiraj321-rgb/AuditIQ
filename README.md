@@ -177,3 +177,14 @@ The application runs at `http://localhost:3000`.
 ## License
 
 MIT License
+
+## Documentation Hub
+*   **[AuditIQ Master Project Bible](docs/knowledge/AuditIQ_Master_Project_Bible.md)**
+*   **[Blueprint V1](docs/knowledge/Blueprint_V1.md)**
+*   **[Blueprint V2](docs/knowledge/Blueprint_V2.md)**
+*   **[Golden Rules](docs/governance/AUDITIQ_GOLDEN_RULE.md)**
+*   **[Source of Truth](docs/governance/SOURCE_OF_TRUTH.md)**
+*   **[Release Process](docs/governance/Release_Process.md)**
+*   **[AI Agent Guidelines](docs/governance/AI_AGENT_GUIDELINES.md)**
+*   **[Pipeline Architecture](docs/architecture/Pipeline_Architecture.md)**
+*   **[Engine Architecture](docs/architecture/Engine_Architecture.md)**
