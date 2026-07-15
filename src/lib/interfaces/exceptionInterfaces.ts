@@ -6,7 +6,7 @@ import {
   AuditLogEntry,
   IAuditSession
 } from '../types/exceptionLifecycle';
-import { ExceptionResolution } from '../types';
+import { ExceptionResolution } from '../types/index';
 
 /**
  * Pure functional policy that returns a deterministic decision based on an immutable context.

@@ -12,7 +12,7 @@ import {
 } from '../types/exceptionLifecycle';
 import { DetectedException } from '../exceptionEngine';
 import { TransactionState } from '../types/continuous';
-import { ExceptionResolution } from '../types';
+import { ExceptionResolution } from '../types/index';
 
 export class ExceptionLifecycleManager implements IExceptionLifecycleManager {
   constructor(
