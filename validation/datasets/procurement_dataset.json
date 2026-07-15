@@ -1,0 +1,464 @@
+{
+  "buyer": {
+    "name": "Northstar Electronics Manufacturing Pvt. Ltd.",
+    "address": "88 Industrial Estate, Phase II, Hinjewadi, Pune 411057, Maharashtra, India",
+    "dept": "Procurement & Accounts Payable"
+  },
+  "tax_rate": "18%",
+  "summary_note": "Total Amount in summary table means the invoice grand total for the scenario. Duplicate invoice scenario uses one total amount per invoice copy.",
+  "scenarios": [],
+  "documents": [
+    {
+      "scenario": "Perfect Match",
+      "doc_type": "Purchase Order",
+      "document_number": "PO-NS-2026-0001",
+      "document_date": "2026-03-10",
+      "vendor": "Alpha Industrial Supplies LLP",
+      "vendor_address": "Plot 17, Sector 19, MIDC Bhosari, Pune 411026, Maharashtra, India",
+      "po_number": "PO-NS-2026-0001",
+      "grn_number": "GRN-NS-2026-0001",
+      "invoice_number": "INV-NS-2026-0001",
+      "currency": "INR",
+      "subtotal": "45500.00",
+      "tax": "8190.00",
+      "grand_total": "53690.00",
+      "expected_exception": "No exceptions",
+      "items": [
+        {
+          "item": "Industrial Fasteners M8 x 20 mm",
+          "uom": "PCS",
+          "qty": "2000",
+          "unit_price": "18.50",
+          "line_amount": "37000.00"
+        },
+        {
+          "item": "Nylon Washers 8 mm",
+          "uom": "PCS",
+          "qty": "2000",
+          "unit_price": "4.25",
+          "line_amount": "8500.00"
+        }
+      ]
+    },
+    {
+      "scenario": "Perfect Match",
+      "doc_type": "Goods Receipt Note",
+      "document_number": "GRN-NS-2026-0001",
+      "document_date": "2026-03-13",
+      "vendor": "Alpha Industrial Supplies LLP",
+      "vendor_address": "Plot 17, Sector 19, MIDC Bhosari, Pune 411026, Maharashtra, India",
+      "po_number": "PO-NS-2026-0001",
+      "grn_number": "GRN-NS-2026-0001",
+      "invoice_number": "INV-NS-2026-0001",
+      "currency": "INR",
+      "subtotal": "45500.00",
+      "tax": "8190.00",
+      "grand_total": "53690.00",
+      "expected_exception": "No exceptions",
+      "items": [
+        {
+          "item": "Industrial Fasteners M8 x 20 mm",
+          "uom": "PCS",
+          "qty": "2000",
+          "unit_price": "18.50",
+          "line_amount": "37000.00"
+        },
+        {
+          "item": "Nylon Washers 8 mm",
+          "uom": "PCS",
+          "qty": "2000",
+          "unit_price": "4.25",
+          "line_amount": "8500.00"
+        }
+      ]
+    },
+    {
+      "scenario": "Perfect Match",
+      "doc_type": "Vendor Invoice",
+      "document_number": "INV-NS-2026-0001",
+      "document_date": "2026-03-14",
+      "vendor": "Alpha Industrial Supplies LLP",
+      "vendor_address": "Plot 17, Sector 19, MIDC Bhosari, Pune 411026, Maharashtra, India",
+      "po_number": "PO-NS-2026-0001",
+      "grn_number": "GRN-NS-2026-0001",
+      "invoice_number": "INV-NS-2026-0001",
+      "currency": "INR",
+      "subtotal": "45500.00",
+      "tax": "8190.00",
+      "grand_total": "53690.00",
+      "expected_exception": "No exceptions",
+      "items": [
+        {
+          "item": "Industrial Fasteners M8 x 20 mm",
+          "uom": "PCS",
+          "qty": "2000",
+          "unit_price": "18.50",
+          "line_amount": "37000.00"
+        },
+        {
+          "item": "Nylon Washers 8 mm",
+          "uom": "PCS",
+          "qty": "2000",
+          "unit_price": "4.25",
+          "line_amount": "8500.00"
+        }
+      ]
+    },
+    {
+      "scenario": "Quantity Mismatch",
+      "doc_type": "Purchase Order",
+      "document_number": "PO-NS-2026-0002",
+      "document_date": "2026-02-05",
+      "vendor": "Vertex Packaging Solutions Pvt. Ltd.",
+      "vendor_address": "42/7 Udyog Vihar, Phase IV, Gurugram 122015, Haryana, India",
+      "po_number": "PO-NS-2026-0002",
+      "grn_number": "GRN-NS-2026-0002",
+      "invoice_number": "INV-NS-2026-0002",
+      "currency": "INR",
+      "subtotal": "40500.00",
+      "tax": "7290.00",
+      "grand_total": "47790.00",
+      "expected_exception": "Invoice quantity differs from PO quantity",
+      "items": [
+        {
+          "item": "Corrugated Shipping Boxes",
+          "uom": "PCS",
+          "qty": "500",
+          "unit_price": "62.00",
+          "line_amount": "31000.00"
+        },
+        {
+          "item": "BOPP Packing Tape Rolls",
+          "uom": "ROLLS",
+          "qty": "250",
+          "unit_price": "38.00",
+          "line_amount": "9500.00"
+        }
+      ]
+    },
+    {
+      "scenario": "Quantity Mismatch",
+      "doc_type": "Goods Receipt Note",
+      "document_number": "GRN-NS-2026-0002",
+      "document_date": "2026-02-08",
+      "vendor": "Vertex Packaging Solutions Pvt. Ltd.",
+      "vendor_address": "42/7 Udyog Vihar, Phase IV, Gurugram 122015, Haryana, India",
+      "po_number": "PO-NS-2026-0002",
+      "grn_number": "GRN-NS-2026-0002",
+      "invoice_number": "INV-NS-2026-0002",
+      "currency": "INR",
+      "subtotal": "40500.00",
+      "tax": "7290.00",
+      "grand_total": "47790.00",
+      "expected_exception": "Invoice quantity differs from PO quantity",
+      "items": [
+        {
+          "item": "Corrugated Shipping Boxes",
+          "uom": "PCS",
+          "qty": "500",
+          "unit_price": "62.00",
+          "line_amount": "31000.00"
+        },
+        {
+          "item": "BOPP Packing Tape Rolls",
+          "uom": "ROLLS",
+          "qty": "250",
+          "unit_price": "38.00",
+          "line_amount": "9500.00"
+        }
+      ]
+    },
+    {
+      "scenario": "Quantity Mismatch",
+      "doc_type": "Vendor Invoice",
+      "document_number": "INV-NS-2026-0002",
+      "document_date": "2026-02-09",
+      "vendor": "Vertex Packaging Solutions Pvt. Ltd.",
+      "vendor_address": "42/7 Udyog Vihar, Phase IV, Gurugram 122015, Haryana, India",
+      "po_number": "PO-NS-2026-0002",
+      "grn_number": "GRN-NS-2026-0002",
+      "invoice_number": "INV-NS-2026-0002",
+      "currency": "INR",
+      "subtotal": "41740.00",
+      "tax": "7513.20",
+      "grand_total": "49253.20",
+      "expected_exception": "Invoice quantity differs from PO quantity",
+      "items": [
+        {
+          "item": "Corrugated Shipping Boxes",
+          "uom": "PCS",
+          "qty": "520",
+          "unit_price": "62.00",
+          "line_amount": "32240.00"
+        },
+        {
+          "item": "BOPP Packing Tape Rolls",
+          "uom": "ROLLS",
+          "qty": "250",
+          "unit_price": "38.00",
+          "line_amount": "9500.00"
+        }
+      ]
+    },
+    {
+      "scenario": "Price Variance",
+      "doc_type": "Purchase Order",
+      "document_number": "PO-NS-2026-0003",
+      "document_date": "2026-01-12",
+      "vendor": "Orion Office Systems Pvt. Ltd.",
+      "vendor_address": "11A Lake View Business Park, Salt Lake, Kolkata 700091, West Bengal, India",
+      "po_number": "PO-NS-2026-0003",
+      "grn_number": "GRN-NS-2026-0003",
+      "invoice_number": "INV-NS-2026-0003",
+      "currency": "INR",
+      "subtotal": "216000.00",
+      "tax": "38880.00",
+      "grand_total": "254880.00",
+      "expected_exception": "Invoice unit price differs from PO unit price",
+      "items": [
+        {
+          "item": "A4 Copy Paper 80 GSM",
+          "uom": "REAMS",
+          "qty": "400",
+          "unit_price": "295.00",
+          "line_amount": "118000.00"
+        },
+        {
+          "item": "Toner Cartridges TN-347",
+          "uom": "PCS",
+          "qty": "40",
+          "unit_price": "2450.00",
+          "line_amount": "98000.00"
+        }
+      ]
+    },
+    {
+      "scenario": "Price Variance",
+      "doc_type": "Goods Receipt Note",
+      "document_number": "GRN-NS-2026-0003",
+      "document_date": "2026-01-16",
+      "vendor": "Orion Office Systems Pvt. Ltd.",
+      "vendor_address": "11A Lake View Business Park, Salt Lake, Kolkata 700091, West Bengal, India",
+      "po_number": "PO-NS-2026-0003",
+      "grn_number": "GRN-NS-2026-0003",
+      "invoice_number": "INV-NS-2026-0003",
+      "currency": "INR",
+      "subtotal": "216000.00",
+      "tax": "38880.00",
+      "grand_total": "254880.00",
+      "expected_exception": "Invoice unit price differs from PO unit price",
+      "items": [
+        {
+          "item": "A4 Copy Paper 80 GSM",
+          "uom": "REAMS",
+          "qty": "400",
+          "unit_price": "295.00",
+          "line_amount": "118000.00"
+        },
+        {
+          "item": "Toner Cartridges TN-347",
+          "uom": "PCS",
+          "qty": "40",
+          "unit_price": "2450.00",
+          "line_amount": "98000.00"
+        }
+      ]
+    },
+    {
+      "scenario": "Price Variance",
+      "doc_type": "Vendor Invoice",
+      "document_number": "INV-NS-2026-0003",
+      "document_date": "2026-01-17",
+      "vendor": "Orion Office Systems Pvt. Ltd.",
+      "vendor_address": "11A Lake View Business Park, Salt Lake, Kolkata 700091, West Bengal, India",
+      "po_number": "PO-NS-2026-0003",
+      "grn_number": "GRN-NS-2026-0003",
+      "invoice_number": "INV-NS-2026-0003",
+      "currency": "INR",
+      "subtotal": "218000.00",
+      "tax": "39240.00",
+      "grand_total": "257240.00",
+      "expected_exception": "Invoice unit price differs from PO unit price",
+      "items": [
+        {
+          "item": "A4 Copy Paper 80 GSM",
+          "uom": "REAMS",
+          "qty": "400",
+          "unit_price": "300.00",
+          "line_amount": "120000.00"
+        },
+        {
+          "item": "Toner Cartridges TN-347",
+          "uom": "PCS",
+          "qty": "40",
+          "unit_price": "2450.00",
+          "line_amount": "98000.00"
+        }
+      ]
+    },
+    {
+      "scenario": "Missing GRN",
+      "doc_type": "Purchase Order",
+      "document_number": "PO-NS-2026-0004",
+      "document_date": "2026-04-21",
+      "vendor": "Meridian Electricals & Controls",
+      "vendor_address": "9 Industrial Area, Peenya, Bengaluru 560058, Karnataka, India",
+      "po_number": "PO-NS-2026-0004",
+      "grn_number": "N/A",
+      "invoice_number": "INV-NS-2026-0004",
+      "currency": "INR",
+      "subtotal": "210000.00",
+      "tax": "37800.00",
+      "grand_total": "247800.00",
+      "expected_exception": "Missing Goods Receipt Note",
+      "items": [
+        {
+          "item": "LED Panel Lights 36W",
+          "uom": "PCS",
+          "qty": "120",
+          "unit_price": "1150.00",
+          "line_amount": "138000.00"
+        },
+        {
+          "item": "Emergency Exit Signs",
+          "uom": "PCS",
+          "qty": "30",
+          "unit_price": "2400.00",
+          "line_amount": "72000.00"
+        }
+      ]
+    },
+    {
+      "scenario": "Missing GRN",
+      "doc_type": "Vendor Invoice",
+      "document_number": "INV-NS-2026-0004",
+      "document_date": "2026-04-25",
+      "vendor": "Meridian Electricals & Controls",
+      "vendor_address": "9 Industrial Area, Peenya, Bengaluru 560058, Karnataka, India",
+      "po_number": "PO-NS-2026-0004",
+      "grn_number": "N/A",
+      "invoice_number": "INV-NS-2026-0004",
+      "currency": "INR",
+      "subtotal": "210000.00",
+      "tax": "37800.00",
+      "grand_total": "247800.00",
+      "expected_exception": "Missing Goods Receipt Note",
+      "items": [
+        {
+          "item": "LED Panel Lights 36W",
+          "uom": "PCS",
+          "qty": "120",
+          "unit_price": "1150.00",
+          "line_amount": "138000.00"
+        },
+        {
+          "item": "Emergency Exit Signs",
+          "uom": "PCS",
+          "qty": "30",
+          "unit_price": "2400.00",
+          "line_amount": "72000.00"
+        }
+      ]
+    },
+    {
+      "scenario": "Duplicate Invoice",
+      "doc_type": "Purchase Order",
+      "document_number": "PO-NS-2026-0005",
+      "document_date": "2026-05-06",
+      "vendor": "Summit Logistics & Warehousing Pvt. Ltd.",
+      "vendor_address": "305 Cargo House, Saki Naka, Mumbai 400072, Maharashtra, India",
+      "po_number": "PO-NS-2026-0005",
+      "grn_number": "GRN-NS-2026-0005",
+      "invoice_number": "INV-NS-2026-0005",
+      "currency": "INR",
+      "subtotal": "185000.00",
+      "tax": "33300.00",
+      "grand_total": "218300.00",
+      "expected_exception": "Duplicate invoice detected",
+      "items": [
+        {
+          "item": "Inbound Freight Handling Service",
+          "uom": "LOT",
+          "qty": "1",
+          "unit_price": "185000.00",
+          "line_amount": "185000.00"
+        }
+      ]
+    },
+    {
+      "scenario": "Duplicate Invoice",
+      "doc_type": "Goods Receipt Note",
+      "document_number": "GRN-NS-2026-0005",
+      "document_date": "2026-05-09",
+      "vendor": "Summit Logistics & Warehousing Pvt. Ltd.",
+      "vendor_address": "305 Cargo House, Saki Naka, Mumbai 400072, Maharashtra, India",
+      "po_number": "PO-NS-2026-0005",
+      "grn_number": "GRN-NS-2026-0005",
+      "invoice_number": "INV-NS-2026-0005",
+      "currency": "INR",
+      "subtotal": "185000.00",
+      "tax": "33300.00",
+      "grand_total": "218300.00",
+      "expected_exception": "Duplicate invoice detected",
+      "items": [
+        {
+          "item": "Inbound Freight Handling Service",
+          "uom": "LOT",
+          "qty": "1",
+          "unit_price": "185000.00",
+          "line_amount": "185000.00"
+        }
+      ]
+    },
+    {
+      "scenario": "Duplicate Invoice",
+      "doc_type": "Vendor Invoice",
+      "document_number": "INV-NS-2026-0005",
+      "document_date": "2026-05-10",
+      "vendor": "Summit Logistics & Warehousing Pvt. Ltd.",
+      "vendor_address": "305 Cargo House, Saki Naka, Mumbai 400072, Maharashtra, India",
+      "po_number": "PO-NS-2026-0005",
+      "grn_number": "GRN-NS-2026-0005",
+      "invoice_number": "INV-NS-2026-0005",
+      "currency": "INR",
+      "subtotal": "185000.00",
+      "tax": "33300.00",
+      "grand_total": "218300.00",
+      "expected_exception": "Duplicate invoice detected",
+      "items": [
+        {
+          "item": "Inbound Freight Handling Service",
+          "uom": "LOT",
+          "qty": "1",
+          "unit_price": "185000.00",
+          "line_amount": "185000.00"
+        }
+      ]
+    },
+    {
+      "scenario": "Duplicate Invoice",
+      "doc_type": "Duplicate Vendor Invoice",
+      "document_number": "INV-NS-2026-0005-COPY",
+      "document_date": "2026-05-12",
+      "vendor": "Summit Logistics & Warehousing Pvt. Ltd.",
+      "vendor_address": "305 Cargo House, Saki Naka, Mumbai 400072, Maharashtra, India",
+      "po_number": "PO-NS-2026-0005",
+      "grn_number": "GRN-NS-2026-0005",
+      "invoice_number": "INV-NS-2026-0005",
+      "currency": "INR",
+      "subtotal": "185000.00",
+      "tax": "33300.00",
+      "grand_total": "218300.00",
+      "expected_exception": "Duplicate invoice detected",
+      "items": [
+        {
+          "item": "Inbound Freight Handling Service",
+          "uom": "LOT",
+          "qty": "1",
+          "unit_price": "185000.00",
+          "line_amount": "185000.00"
+        }
+      ]
+    }
+  ]
+}
