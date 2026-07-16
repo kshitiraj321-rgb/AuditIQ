@@ -182,13 +182,13 @@ export default function Home() {
           <Link
             href="/upload"
             onClick={startFreshAuditSession}
-            className="inline-flex items-center justify-center rounded-md bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg"
+            className="inline-flex items-center justify-center rounded-md bg-[#5E6AD2] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#5E6AD2]/80 hover:shadow-[0_0_15px_rgba(94,106,210,0.4)]"
           >
             Start New Audit
           </Link>
           <Link
             href="/results"
-            className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50"
+            className="inline-flex items-center justify-center rounded-md border border-[#2A2E37] bg-[#181B21] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:border-[#5E6AD2]/50 hover:bg-[#2A2E37]/50"
           >
             Open Workspace
           </Link>
@@ -205,13 +205,13 @@ export default function Home() {
               <Link
                 href="/upload"
                 onClick={startFreshAuditSession}
-                className="inline-flex items-center justify-center rounded-md bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                className="inline-flex items-center justify-center rounded-md bg-[#5E6AD2] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#5E6AD2]/80 hover:shadow-[0_0_15px_rgba(94,106,210,0.4)]"
               >
                 Upload Documents
               </Link>
               <Link
                 href="/results"
-                className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
+                className="inline-flex items-center justify-center rounded-md border border-[#2A2E37] bg-[#181B21] px-4 py-2.5 text-sm font-semibold text-white transition hover:border-[#5E6AD2]/50 hover:bg-[#2A2E37]/50"
               >
                 View Results Layout
               </Link>
@@ -266,9 +266,9 @@ export default function Home() {
             subtitle="Immediate posture for the current procurement audit."
             tone="accent"
           >
-            <div className="grid grid-cols-2 gap-x-4 gap-y-5 rounded-lg border border-white/10 bg-white/5 p-5 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-5 rounded-lg border border-[#2A2E37] bg-white/[0.02] p-5 md:grid-cols-4">
               <div>
-                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#9CA3AF]">
                   <CheckCircle className="h-3 w-3" /> Audit Status
                 </p>
                 <p className={`mt-2 text-sm font-semibold flex items-center gap-1.5 ${hasAnalysis ? "text-emerald-400" : "text-white"}`}>
@@ -276,7 +276,7 @@ export default function Home() {
                 </p>
               </div>
               <div>
-                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#9CA3AF]">
                   <Building className="h-3 w-3" /> Current Vendor
                 </p>
                 <p className="mt-2 text-sm font-semibold text-white truncate" title={analysis.extractedData?.vendorInvoice?.vendor || "Not assigned"}>
@@ -284,7 +284,7 @@ export default function Home() {
                 </p>
               </div>
               <div>
-                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#9CA3AF]">
                   <Calendar className="h-3 w-3" /> Audit Date
                 </p>
                 <p className="mt-2 text-sm font-semibold text-white">
@@ -292,7 +292,7 @@ export default function Home() {
                 </p>
               </div>
               <div>
-                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#9CA3AF]">
                   <Activity className="h-3 w-3" /> Risk Level
                 </p>
                 <div className="mt-2">
@@ -300,7 +300,7 @@ export default function Home() {
                 </div>
               </div>
               <div>
-                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#9CA3AF]">
                   <ClipboardCheck className="h-3 w-3" /> Recommendation
                 </p>
                 <p className={`mt-2 text-sm font-semibold ${highAttention ? "text-rose-400" : "text-sky-400"}`}>
@@ -308,13 +308,13 @@ export default function Home() {
                 </p>
               </div>
               <div>
-                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#9CA3AF]">
                   <FileCheck className="h-3 w-3" /> Documents
                 </p>
                 <p className="mt-2 text-sm font-semibold text-white">{documentCount} attached</p>
               </div>
               <div>
-                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#9CA3AF]">
                   <CircleDashed className="h-3 w-3" /> Processing
                 </p>
                 <p className={`mt-2 text-sm font-semibold ${hasAnalysis ? "text-emerald-400" : "text-white"}`}>
@@ -322,7 +322,7 @@ export default function Home() {
                 </p>
               </div>
               <div>
-                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#9CA3AF]">
                   <ShieldCheck className="h-3 w-3" /> Finding
                 </p>
                 <p className={`mt-2 text-sm font-semibold flex items-center gap-1.5 ${highAttention ? "text-rose-400" : "text-emerald-400"}`}>
@@ -340,10 +340,10 @@ export default function Home() {
                 ["Priority load", String(topExceptions.length), "Ranked exceptions"],
                 ["Vendor pressure", String(vendorRisk), "Vendor risk signal"],
               ].map(([label, value, detail]) => (
-                <div key={label} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
-                  <p className="mt-1 text-xs text-slate-500">{detail}</p>
+                <div key={label} className="rounded-lg border border-[#2A2E37] bg-[#181B21]/50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9CA3AF]">{label}</p>
+                  <p className="mt-2 text-2xl font-semibold text-white tabular-nums">{value}</p>
+                  <p className="mt-1 text-xs text-[#9CA3AF]">{detail}</p>
                 </div>
               ))}
             </div>
@@ -366,15 +366,15 @@ export default function Home() {
                 return (
                   <div
                     key={key}
-                    className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-slate-300 hover:bg-white"
+                    className="flex items-center justify-between rounded-lg border border-[#2A2E37] bg-[#181B21]/50 px-4 py-3 transition hover:border-[#5E6AD2]/50 hover:bg-[#181B21]"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#2A2E37] bg-[#181B21] text-[#9CA3AF] shadow-sm">
                         <FileText className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-slate-950">{label}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">{value || "Not uploaded"}</p>
+                        <p className="text-sm font-semibold text-white">{label}</p>
+                        <p className="mt-0.5 text-xs text-[#9CA3AF]">{value || "Not uploaded"}</p>
                       </div>
                     </div>
                     <Tag tone={value ? "success" : "slate"}>{value ? "Loaded" : "Missing"}</Tag>
@@ -389,28 +389,28 @@ export default function Home() {
             subtitle={hasAnalysis ? "High-priority items sorted by the exception engine." : "Awaiting the first audit session."}
           >
             {topExceptions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50/50 py-10 px-6 text-center">
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-[#2A2E37] bg-[#181B21]/50 py-10 px-6 text-center">
                 <CheckCircle className="mb-3 h-8 w-8 text-emerald-500" />
-                <p className="text-sm font-semibold text-slate-900">✓ No priority exceptions</p>
-                <p className="mx-auto mt-2 max-w-sm text-sm text-slate-500">Current audit is clean. No high-priority items require immediate attention.</p>
+                <p className="text-sm font-semibold text-white">✓ No priority exceptions</p>
+                <p className="mx-auto mt-2 max-w-sm text-sm text-[#9CA3AF]">Current audit is clean. No high-priority items require immediate attention.</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {topExceptions.map((ex, idx) => (
                   <div
                     key={`${ex.exception.type}-${idx}`}
-                    className="rounded-lg border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
+                    className="rounded-lg border border-[#2A2E37] bg-[#181B21] p-4 transition hover:-translate-y-0.5 hover:border-[#5E6AD2]/50 hover:shadow-[0_4px_20px_rgba(94,106,210,0.15)]"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-slate-950">{ex.exception.type}</p>
-                        <p className="mt-1 text-sm text-slate-500">
-                          Severity: <span className="font-semibold text-rose-600">{ex.exception.severity}</span>
+                        <p className="text-sm font-semibold text-white">{ex.exception.type}</p>
+                        <p className="mt-1 text-sm text-[#9CA3AF]">
+                          Severity: <span className="font-semibold text-rose-400">{ex.exception.severity}</span>
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">Priority</p>
-                        <p className="mt-1 text-2xl font-semibold text-slate-950">{typeof ex.finalPriorityScore === 'number' ? Number(ex.finalPriorityScore.toFixed(1)) : ex.finalPriorityScore}</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#9CA3AF]">Priority</p>
+                        <p className="mt-1 text-2xl font-semibold text-white tabular-nums">{typeof ex.finalPriorityScore === 'number' ? Number(ex.finalPriorityScore.toFixed(1)) : ex.finalPriorityScore}</p>
                       </div>
                     </div>
                   </div>
